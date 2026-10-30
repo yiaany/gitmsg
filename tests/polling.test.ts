@@ -1,6 +1,25 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { runInNewContext } from "node:vm";
+import ts from "typescript";
 import { ACTIVE_POLL_MS, BACKGROUND_POLL_MS, pollInterval, startAdaptivePolling, type PollState } from "../src/lib/polling";
+
+test("default timers preserve browser-native invocation semantics", () => {
+  const source = readFileSync(new URL("../src/lib/polling.ts", import.meta.url), "utf8");
+  const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
+  const result = runInNewContext(`
+    "use strict";
+    let scheduled = 0, cleared = 0;
+    globalThis.setTimeout = function () { if (this !== undefined && this !== globalThis) throw new TypeError("Illegal invocation"); return ++scheduled; };
+    globalThis.clearTimeout = function () { if (this !== undefined && this !== globalThis) throw new TypeError("Illegal invocation"); cleared++; };
+    ${compiled}
+    const p = exports.startAdaptivePolling({ run: async () => {}, state: () => ({ hidden: false, focused: true, online: true, failures: 0, retryAt: 0 }) });
+    p.refresh(); p.stop();
+    ({scheduled, cleared});
+  `, { exports: {}, AbortController });
+  assert.equal(result.scheduled, 2); assert.equal(result.cleared, 2);
+});
 
 function setup(run: (signal: AbortSignal) => Promise<void> = async () => {}) {
   let now = 0; let id = 0;
