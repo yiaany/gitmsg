@@ -15,7 +15,8 @@ type Clock = {
   setTimeout: (callback: () => void, delay: number) => ReturnType<typeof setTimeout>;
   clearTimeout: (timer: ReturnType<typeof setTimeout>) => void;
 };
-const systemClock: Clock = { now: Date.now, random: Math.random, setTimeout, clearTimeout };
+// Keep browser timer calls bound to their native global, not to this clock object.
+const systemClock: Clock = { now: Date.now, random: Math.random, setTimeout: (callback, delay) => setTimeout(callback, delay), clearTimeout: timer => clearTimeout(timer) };
 
 // One request and one timer at most. No interval backlog when a request is slow.
 export function startAdaptivePolling({ run, state, clock = systemClock }: { run: (signal: AbortSignal) => Promise<void>; state: () => PollState; clock?: Clock }) {
