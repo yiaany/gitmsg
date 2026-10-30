@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { body, failure, getSession, github, HttpError, json, sameOrigin, throttle } from "@/lib/server";
 import { MAX_MEDIA, validRepo } from "@/lib/protocol";
 import { roomPolicy } from "@/lib/room-policy";
-import { MediaStorageError, readGitMedia } from "@/lib/git-media";
+import { encodeGitMedia, MediaStorageError, readGitMedia } from "@/lib/git-media";
 
 export const maxDuration = 60;
 function validate(repo: string, id: string, branch: string) {
@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
     const bytes = Buffer.from(data, "base64");
     if (!bytes.length || bytes.length > MAX_MEDIA + 16) throw new HttpError(413, "Attachments must be at most 2 MiB. Try a shorter recording or smaller image.");
     const path = `/repos/${repo}/contents/media/${id}.bin`;
-    try { await github(session, path, { method: "PUT", body: JSON.stringify({ branch, message: "feat(media): store attachment", content: data }) }); }
+    try { await github(session, path, { method: "PUT", body: JSON.stringify({ branch, message: "feat(media): store attachment", content: encodeGitMedia(bytes) }) }); }
     catch (error) {
       if (!(error instanceof HttpError) || ![409, 422].includes(error.status)) throw error;
       const existing = await readGitMedia(async path => (await github(session, path)).json(), repo, branch, id);

@@ -80,6 +80,7 @@ export function Messenger() {
   const syncInFlight = useRef<AbortController | null>(null);
   const failureStreak = useRef(0);
   const [error, setError] = useState("");
+  const [syncError, setSyncError] = useState("");
   const [toast, setToast] = useState("");
   const [replyTo, setReplyTo] = useState<Message | null>(null);
   const [editing, setEditing] = useState<Message | null>(null);
@@ -233,7 +234,7 @@ export function Messenger() {
     if (node && node.scrollHeight - node.scrollTop - node.clientHeight < 350) bottom.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [messages.length, botTyping]);
   useEffect(() => {
-    setText(readLocal<string>(`gitmsg:draft:${room.id}`, "")); setReplyTo(null); setEditing(null); setSearch(""); setError(""); retryEvent.current = null;
+    setText(readLocal<string>(`gitmsg:draft:${room.id}`, "")); setReplyTo(null); setEditing(null); setSearch(""); setError(""); setSyncError(""); retryEvent.current = null;
     later(() => bottom.current?.scrollIntoView({ block: "end" }), 80);
   }, [room.id, later]);
   useEffect(() => {
@@ -251,9 +252,9 @@ export function Messenger() {
     return () => window.removeEventListener("keydown", keydown);
   }, [notify]);
 
-  const onError = useCallback((e: unknown) => {
+  const onError = useCallback((e: unknown, fromSync = false) => {
     const message = e instanceof Error ? e.message : "Something went wrong.";
-    setError(message);
+    if (fromSync) setSyncError(message); else setError(message);
     if (e instanceof ApiError && e.status === 429) { cooldownRef.current = Date.now() + Math.max(60, e.retryAfter) * 1000; setCooldown(Math.max(60, e.retryAfter)); }
     if (e instanceof ApiError && e.status === 401) { setSession(old => old ? { ...old, user: null } : null); writeLocal("gitmsg:connected", false); }
   }, []);
@@ -271,7 +272,7 @@ export function Messenger() {
       if (historyPage && old.older) query.set("cursor", old.older);
       const response = await fetch(`/api/chat?${query}`, { signal: requestSignal, cache: "no-store", headers: old.etag && !historyPage ? { "If-None-Match": old.etag } : {} });
       if (!current()) return;
-      if (response.status === 304) { setLastSync(new Date().toISOString()); failureStreak.current = 0; setError(""); return; }
+      if (response.status === 304) { setLastSync(new Date().toISOString()); failureStreak.current = 0; setSyncError(""); return; }
       const data = await response.json();
       if (!current()) return;
       if (!response.ok) throw new ApiError(data.error, response.status, data.retryAfter);
@@ -295,9 +296,9 @@ export function Messenger() {
         const events = historyPage ? mergeEvents(incoming, current.events) : reconcileEvents(current.events, incoming);
         return { events, etag: historyPage ? current.etag : response.headers.get("etag") || undefined, head: historyPage ? current.head : result.head, older: historyPage || !current.fetched ? result.older : current.older, fetched: true };
       });
-      setLastSync(new Date().toISOString()); setError(""); failureStreak.current = 0;
+      setLastSync(new Date().toISOString()); setSyncError(""); failureStreak.current = 0;
       log(`[fetch] ${historyPage ? "older history" : "origin/" + active.branch} · ${incoming.length} events`);
-    } catch (e) { if (current()) { failureStreak.current++; onError(e); } }
+    } catch (e) { if (current()) { failureStreak.current++; onError(e, true); } }
     finally { if (syncInFlight.current === controller) { syncInFlight.current = null; setSyncing(false); } }
   }, [session, updateTimeline, onError, log]);
 
@@ -519,7 +520,7 @@ export function Messenger() {
           <div ref={bottom} className="scroll-anchor" />
         </div>
         <div className="composer-area">
-          {error && <div className="error-banner" role="alert"><Info size={16} /><span>{error}{cooldown > 0 && ` (${cooldown}s)`}</span><Button variant="ghost" size="icon-xs" aria-label="Dismiss error" onClick={() => setError("")}><X /></Button></div>}
+          {(error || syncError) && <div className="error-banner" role="alert"><Info size={16} /><span>{error || syncError}{cooldown > 0 && ` (${cooldown}s)`}</span><Button variant="ghost" size="icon-xs" aria-label="Dismiss error" onClick={() => { setError(""); setSyncError(""); }}><X /></Button></div>}
           {security.enabled && !security.hasKey && <Button className="unlock-room" variant="outline" onClick={() => setModal("security")}><LockKeyhole />Import the room key to send and read encrypted messages</Button>}
           {currentReply && <div className="composing-context">{editing ? <Pencil size={13} /> : <Reply size={13} />}<span>{editing ? "Editing your message" : `Replying to ${replyTo!.actor.login}`}<small>{currentReply.text.slice(0, 80)}</small></span><Button variant="ghost" size="icon-xs" aria-label="Cancel reply or edit" onClick={() => { if (editing) setText(""); setEditing(null); setReplyTo(null); }}><X /></Button></div>}
           <form className="composer" onSubmit={send}>

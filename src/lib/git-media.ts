@@ -4,6 +4,7 @@ type GitFile = { type?: string; encoding?: string; content?: string; size?: numb
 export class MediaStorageError extends Error {
   constructor(public status: number, message: string) { super(message); }
 }
+export function encodeGitMedia(bytes: Uint8Array): string { return Buffer.from(bytes).toString("base64"); }
 // Never use raw media responses: base64 JSON preserves arbitrary binary bytes
 // across GitHub's content negotiation and intermediate HTTP implementations.
 export async function readGitMedia(get: (path: string) => Promise<GitFile>, repo: string, branch: string, id: string): Promise<Uint8Array<ArrayBuffer>> {

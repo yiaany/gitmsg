@@ -1,7 +1,13 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readGitMedia } from "../src/lib/git-media";
+import { encodeGitMedia, readGitMedia } from "../src/lib/git-media";
 import { MAX_MEDIA } from "../src/lib/protocol";
+test("Git uploads use canonical padded base64 even when browser transport omits padding", () => {
+  for (const length of [1, 2, 3, 4, 37, 42, 646]) {
+    const bytes = new Uint8Array(length).fill(241), encoded = encodeGitMedia(bytes);
+    assert.equal(encoded.length % 4, 0); assert.deepEqual(new Uint8Array(Buffer.from(encoded, "base64")), bytes);
+  }
+});
 test("Git binary retrieval preserves every byte, including non-UTF8 ciphertext", async () => {
   const bytes = new Uint8Array(256).map((_, i) => i);
   const sha = "b".repeat(40);
