@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from "./ui/dial
 import { Input } from "./ui/input";
 import { SiteHeader } from "./site-blocks";
 import { InviteForm } from "./invite-form";
+import { JoinChat } from "./join-chat";
 import { AuthPanel } from "./auth-panel";
 import { api, ApiError, readLocal, shortSha, writeLocal } from "@/lib/client";
 import { BOTS, BOT_REPLIES, DEMO_ROOMS, DEMO_USER, demoEvents, FORTUNES } from "@/lib/demo";
@@ -18,7 +19,7 @@ import { materialize, MAX_TEXT, mergeEvents, reconcileEvents, REACTIONS, validEv
 
 type SessionInfo = { user: Actor | null; configured: boolean; mode: "app" | "oauth"; installUrl: string | null };
 type SyncResult = { events: ChatEvent[]; head: string | null; older: string | null };
-type Modal = "connect" | "new" | "invite" | "help" | "settings" | "inspect" | "delete" | null;
+type Modal = "connect" | "join" | "new" | "invite" | "help" | "settings" | "inspect" | "delete" | null;
 type Timeline = { events: ChatEvent[]; etag?: string; head?: string | null; older?: string | null; fetched?: boolean };
 const SOUND_KEY = "gitmsg:sound";
 
@@ -53,6 +54,7 @@ export function Messenger() {
   const roomRef = useRef(room); roomRef.current = room;
   const [session, setSession] = useState<SessionInfo | null>(null);
   const [modal, setModal] = useState<Modal>(null);
+  const [invitedRepo, setInvitedRepo] = useState("");
   const [text, setText] = useState("");
   const [search, setSearch] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
@@ -99,6 +101,13 @@ export function Messenger() {
       return { ...previous, [id]: next };
     });
   }, []);
+  const completeJoin = useCallback((joined: Room) => {
+    setRooms(old => [...old.filter(r => r.id !== joined.id), joined]);
+    setRoom(joined); setModal(null); setInvitedRepo("");
+    sessionStorage.removeItem("gitmsg:invite");
+    const url = new URL(location.href); url.searchParams.delete("repo");
+    history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+  }, []);
 
   useEffect(() => {
     const loaded: Record<string, Timeline> = {};
@@ -111,45 +120,45 @@ export function Messenger() {
     setSound(readLocal(SOUND_KEY, false));
     setHydrated(true);
     const params = new URLSearchParams(location.search);
-    if (params.has("auth_error")) { setError(params.get("auth_error") === "not-configured" ? "GitHub is not configured on this deployment yet. The demo is ready to use." : "GitHub authorization did not finish. Please try again."); history.replaceState({}, "", "/"); }
-    if (params.has("connected") || readLocal("gitmsg:connected", false)) {
-      writeLocal("gitmsg:connected", true);
-      if (params.has("connected")) history.replaceState({}, "", "/");
-      api<SessionInfo>("/api/session").then(async info => {
+    const invitation = params.get("repo") || sessionStorage.getItem("gitmsg:invite");
+    if (invitation) { sessionStorage.setItem("gitmsg:invite", invitation); setInvitedRepo(invitation); }
+    if (params.has("auth_error")) setError(params.get("auth_error") === "not-configured" ? "GitHub is not configured on this deployment yet. The demo is ready to use." : "GitHub authorization did not finish. Please try again.");
+    if (params.has("connected") || params.has("auth_error")) {
+      params.delete("connected"); params.delete("auth_error");
+      history.replaceState({}, "", `/${params.size ? `?${params}` : ""}`);
+    }
+    let disposed = false;
+    // The HttpOnly session is authoritative, not a device-local sign-in flag.
+    api<SessionInfo>("/api/session").then(async info => {
+        if (disposed) return;
         setSession(info);
-        if (!info.user) { writeLocal("gitmsg:connected", false); return; }
+        writeLocal("gitmsg:connected", Boolean(info.user));
+        if (!info.user) { if (invitation) setModal("connect"); return; }
         const saved = readLocal<Room[]>(`gitmsg:rooms:${info.user.id}`, []);
         setRooms(old => [...old.filter(r => r.demo), ...saved.filter(r => !r.demo)]);
-        const invitation = sessionStorage.getItem("gitmsg:invite");
         if (invitation) {
-          try {
-            const joined = await api<{ room: Room }>(`/api/repos?repo=${encodeURIComponent(invitation)}`);
-            setRooms(old => [...old.filter(r => r.id !== joined.room.id), joined.room]);
-            setRoom(joined.room); setModal(null); sessionStorage.removeItem("gitmsg:invite");
-          } catch { setModal("new"); }
+          setModal("join");
         }
         else if (saved.length) setRoom(saved[0]);
         else {
           setSyncing(true);
           try {
             const inbox = await api<{ room: Room }>("/api/onboard", { method: "POST" });
+            if (disposed) return;
             setRooms(old => [...old.filter(r => r.id !== inbox.room.id), inbox.room]);
             setRoom(inbox.room); setModal(null);
             notify("Your private inbox is ready.");
-          } catch (e) { setError((e as Error).message); setModal("new"); }
-          finally { setSyncing(false); }
+          } catch (e) { if (!disposed) { setError((e as Error).message); setModal("new"); } }
+          finally { if (!disposed) setSyncing(false); }
         }
-      }).catch(e => setError(e.message));
-    }
-    const invited = params.get("repo");
-    if (invited) { sessionStorage.setItem("gitmsg:invite", invited); setModal("connect"); }
+      }).catch(e => { if (!disposed) { setError(e.message); if (invitation) setModal("connect"); } });
     if (typeof BroadcastChannel !== "undefined") {
       channel.current = new BroadcastChannel("gitmsg-demo-v1");
       channel.current.onmessage = e => {
         if (e.data?.room?.startsWith("demo/") && validEvent(e.data.event)) updateTimeline(e.data.room, old => ({ ...old, events: mergeEvents(old.events, [e.data.event]) }));
       };
     }
-    return () => { channel.current?.close(); timers.current.forEach(clearTimeout); };
+    return () => { disposed = true; channel.current?.close(); timers.current.forEach(clearTimeout); };
   }, [updateTimeline, notify]);
 
   useEffect(() => {
@@ -396,10 +405,11 @@ export function Messenger() {
     </FramePanel></Frame></main>
 
     {toast && <div className="toast" role="status"><Check size={14} /><span>{toast}</span><Button variant="ghost" size="icon-xs" aria-label="Dismiss notification" onClick={() => setToast("")}><X /></Button></div>}
-    <Dialog open={modal !== null} onOpenChange={open => { if (!open) setModal(null); }}><DialogContent className={`modal ${modal === "help" ? "wide" : ""}`} aria-describedby="dialog-description"><DialogTitle className="sr-only">{modal === "connect" ? "Sign in with GitHub" : modal === "new" ? "New conversation" : modal === "invite" ? "Invite a collaborator" : modal === "help" ? "README and keyboard shortcuts" : modal === "inspect" ? "Inspect commit" : modal === "delete" ? "Hide message" : "Preferences"}</DialogTitle><DialogDescription id="dialog-description" className="sr-only">{modal === "connect" ? "Authorize GitHub to create and access your chat repositories." : "Manage your gitmsg conversation."}</DialogDescription>
-      {modal === "connect" && <AuthPanel session={session} onContinue={() => setModal("new")} onClose={() => setModal(null)} />}
-      {modal === "new" && <NewRoom session={session} onConnect={() => void openConnect()} onDone={newRoom => { setRooms(old => old.some(r => r.id === newRoom.id) ? old : [...old, newRoom]); if (newRoom.demo) updateTimeline(newRoom.id, () => ({ events: [] })); selectRoom(newRoom); setModal(null); notify(newRoom.demo ? "Local chat created." : "Repository connected."); }} />}
-      {modal === "invite" && <><h2>Invite to chat</h2><p>{room.demo ? "Sign in to create a shared chat. Demo rooms are local to this browser." : "Invite a GitHub user, then share the room link after they accept."}</p>{!room.demo ? <><InviteForm repo={room.id} /><Button variant="outline" onClick={() => void copy(`${location.origin}/?repo=${encodeURIComponent(room.id)}`, "Room link copied. GitHub invitation must be accepted first.")}><Copy />Copy room link</Button><Button variant="link" render={<a href={`${repoUrl}/settings/access`} target="_blank" rel="noreferrer" />}>Manage collaborators on GitHub</Button></> : <Button onClick={() => void openConnect()}><Github />Sign in with GitHub</Button>}</>}
+    <Dialog open={modal !== null} onOpenChange={open => { if (!open) setModal(null); }}><DialogContent className={`modal ${modal === "help" ? "wide" : ""}`} aria-describedby="dialog-description"><DialogTitle className="sr-only">{modal === "connect" ? "Sign in with GitHub" : modal === "join" ? "Join chat" : modal === "new" ? "New conversation" : modal === "invite" ? "Invite a collaborator" : modal === "help" ? "README and keyboard shortcuts" : modal === "inspect" ? "Inspect commit" : modal === "delete" ? "Hide message" : "Preferences"}</DialogTitle><DialogDescription id="dialog-description" className="sr-only">{modal === "connect" ? "Authorize GitHub to create and access your chat repositories." : "Manage your gitmsg conversation."}</DialogDescription>
+      {modal === "connect" && <AuthPanel session={session} onContinue={() => setModal(invitedRepo ? "join" : "new")} onClose={() => setModal(null)} />}
+      {modal === "join" && session?.user && <JoinChat repo={invitedRepo} login={session.user.login} onDone={completeJoin} />}
+      {modal === "new" && <NewRoom session={session} onConnect={() => void openConnect()} onDone={newRoom => { if (newRoom.demo) { setRooms(old => [...old, newRoom]); updateTimeline(newRoom.id, () => ({ events: [] })); selectRoom(newRoom); setModal(null); } else completeJoin(newRoom); notify(newRoom.demo ? "Local chat created." : "Repository connected."); }} />}
+      {modal === "invite" && <><h2>Invite to chat</h2><p>{room.demo ? "Sign in to create a shared chat. Demo rooms are local to this browser." : "1. Invite your friend's GitHub username below. 2. Share the room link. They can accept the invitation when they open it. A link alone does not grant access."}</p>{!room.demo ? <><InviteForm repo={room.id} /><Button variant="outline" onClick={() => void copy(`${location.origin}/?repo=${encodeURIComponent(room.id)}`, "Room link copied. Invite their GitHub username too; the link alone does not grant access.")}><Copy />Copy room link</Button><Button variant="link" render={<a href={`${repoUrl}/settings/access`} target="_blank" rel="noreferrer" />}>Manage collaborators on GitHub</Button></> : <Button onClick={() => void openConnect()}><Github />Sign in with GitHub</Button>}</>}
       {modal === "inspect" && selected && <><h2>Commit</h2><div className="commit-detail"><div><span>SHA</span><code>{selected.sha || "Sync to retrieve SHA"}</code></div><div><span>Author</span><b>@{selected.actor.login}</b></div><div><span>Date</span><span>{new Date(selected.createdAt).toLocaleString("en-US")}</span></div><div><span>Branch</span><code>{room.branch}</code></div></div><pre className="json-preview">{JSON.stringify({ id: selected.id, from: selected.actor.login, text: selected.text, timestamp: selected.createdAt }, null, 2)}</pre>{room.demo ? <p className="fine-print">Simulated commit. No data was sent to GitHub.</p> : selected.url && <Button render={<a href={selected.url} target="_blank" rel="noreferrer" />}>View on GitHub<ExternalLink /></Button>}<Button variant="outline" onClick={() => void copy(JSON.stringify(selected, null, 2))}><Copy />Copy JSON</Button></>}
       {modal === "delete" && <><h2>Hide message?</h2><p>The message will be hidden in this chat. Its original text remains in Git history and downloaded copies. This is not secure erasure.</p><Button disabled={sending} loading={sending} onClick={() => void removeMessage()}><Trash2 />Hide message</Button><Button variant="ghost" onClick={() => setModal(null)}>Cancel</Button></>}
       {modal === "settings" && <><h2>Settings</h2><div className="settings-list">
@@ -417,15 +427,17 @@ export function Messenger() {
 function NewRoom({ session, onConnect, onDone }: { session: SessionInfo | null; onConnect: () => void; onDone: (room: Room) => void }) {
   const [tab, setTab] = useState<"demo" | "connect" | "create">(session?.user ? "create" : "demo");
   const [name, setName] = useState(""); const [busy, setBusy] = useState(false); const [error, setError] = useState(""); const [found, setFound] = useState<Room[]>([]);
-  useEffect(() => { const invited = sessionStorage.getItem("gitmsg:invite"); if (invited) { setName(invited); if (session?.user) setTab("connect"); sessionStorage.removeItem("gitmsg:invite"); } }, [session]);
+  const [joining, setJoining] = useState("");
   async function submit(event: FormEvent) {
     event.preventDefault(); if (busy || !name.trim()) return; setBusy(true); setError("");
     try {
       if (tab === "demo") { const slug = name.trim().toLowerCase().replace(/[^a-z0-9-]/g, "-").replace(/^-+|-+$/g, "").slice(0, 40); if (slug.length < 2) throw new Error("Use at least two letters or numbers."); onDone({ id: `demo/${slug}-${crypto.randomUUID().slice(0, 6)}`, name: slug, description: "Local demo", branch: "main", demo: true }); }
-      else { const result = await api<{ room: Room }>(tab === "connect" ? `/api/repos?repo=${encodeURIComponent(name.trim().replace(/^https:\/\/github.com\//, "").replace(/\/$/, ""))}` : "/api/repos", tab === "create" ? { method: "POST", body: JSON.stringify({ name: name.trim() }) } : undefined); onDone(result.room); }
+      else if (tab === "connect") { const repo = name.trim().replace(/^https:\/\/github.com\//, "").replace(/\/$/, ""); sessionStorage.setItem("gitmsg:invite", repo); setJoining(repo); }
+      else { const result = await api<{ room: Room }>("/api/repos", { method: "POST", body: JSON.stringify({ name: name.trim() }) }); onDone(result.room); }
     } catch (e) { setError(e instanceof Error ? e.message : "Could not open conversation."); } finally { setBusy(false); }
   }
   async function discover() { setBusy(true); try { const result = await api<{ rooms: Room[] }>("/api/repos"); setFound(result.rooms); if (!result.rooms.length) setError("No gitmsg- repositories found in the 100 most recently pushed repositories. Enter any writable repo above."); } catch (e) { setError((e as Error).message); } finally { setBusy(false); } }
+  if (joining && session?.user) return <><JoinChat repo={joining} login={session.user.login} onDone={onDone} /><Button variant="ghost" onClick={() => setJoining("")}>Back</Button></>;
   return <><h2>New chat</h2><div className="room-options" role="group" aria-label="Chat type">{(["demo", "create", "connect"] as const).map(t => <Button key={t} size="sm" variant={tab === t ? "secondary" : "ghost"} aria-pressed={tab === t} onClick={() => { setTab(t); setName(""); setError(""); setFound([]); }}>{t === "demo" ? "Demo" : t === "connect" ? "Connect repo" : "Private chat"}</Button>)}</div>
     {tab !== "demo" && !session?.user ? <><p>Sign in with GitHub to open a shared chat.</p><Button onClick={onConnect}><Github />Sign in with GitHub</Button></> : <form className="new-room-form" onSubmit={submit}>
       <label className="field-label" htmlFor="room-name">{tab === "connect" ? "Repository" : "Chat name"}</label>

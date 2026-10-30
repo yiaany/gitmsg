@@ -10,7 +10,7 @@ test("anonymous session exposes no token and no cacheable private response", { s
   assert.equal(body.user, null); assert.equal("token" in body, false);
 });
 test("chat and repository APIs require an authenticated session", { skip: !origin }, async () => {
-  for (const path of ["/api/chat?repo=octocat/chat", "/api/repos"]) {
+  for (const path of ["/api/chat?repo=octocat/chat", "/api/repos", "/api/join?repo=octocat/chat"]) {
     const response = await fetch(`${origin}${path}`);
     assert.equal(response.status, 401);
     assert.match((await response.json()).error, /session expired/i);
@@ -34,7 +34,7 @@ test("the messenger shell stays minimal and uses coss controls", { skip: !origin
 });
 
 test("onboarding and invitations require a session and same-origin requests", { skip: !origin }, async () => {
-  for (const path of ["/api/onboard", "/api/invite"]) {
+  for (const path of ["/api/onboard", "/api/invite", "/api/join"]) {
     const denied = await fetch(`${origin}${path}`, { method: "POST", headers: { Origin: "https://other.example" } });
     assert.equal(denied.status, 403);
     const anonymous = await fetch(`${origin}${path}`, { method: "POST", headers: { Origin: origin! } });
