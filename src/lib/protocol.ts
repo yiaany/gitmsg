@@ -1,0 +1,113 @@
+export const EVENT_PREFIX = "gitmsg:event:v1\n";
+export const MAX_TEXT = 4000;
+export const REACTIONS = ["🚀", "❤️", "😂", "👀", "🔥", "👍"] as const;
+export type Reaction = typeof REACTIONS[number];
+export type Actor = { id: number; login: string; avatar?: string };
+export type ChatEvent = {
+  v: 1;
+  id: string;
+  kind: "message" | "edit" | "delete" | "reaction";
+  actor: Actor;
+  createdAt: string;
+  text?: string;
+  target?: string;
+  replyTo?: string;
+  emoji?: Reaction;
+  active?: boolean;
+  sha?: string;
+  url?: string;
+};
+export type Message = {
+  id: string;
+  actor: Actor;
+  text: string;
+  createdAt: string;
+  replyTo?: string;
+  edited: boolean;
+  deleted: boolean;
+  sha?: string;
+  url?: string;
+  reactions: Partial<Record<Reaction, Actor[]>>;
+};
+export type Room = { id: string; name: string; description: string; branch: string; demo?: boolean; private?: boolean };
+
+export function validRepo(value: string): boolean {
+  return /^[A-Za-z0-9][A-Za-z0-9-]{0,38}\/[A-Za-z0-9_.-]{1,100}$/.test(value) && !value.endsWith("/.") && !value.endsWith("/..");
+}
+
+export function validEvent(value: unknown): value is ChatEvent {
+  if (!value || typeof value !== "object") return false;
+  const e = value as ChatEvent;
+  if (e.v !== 1 || typeof e.id !== "string" || !/^[a-zA-Z0-9_-]{8,80}$/.test(e.id) || !e.actor || !Number.isSafeInteger(e.actor.id) || e.actor.id < 1 || typeof e.actor.login !== "string" || !/^[a-zA-Z0-9-]{1,39}$/.test(e.actor.login) || typeof e.createdAt !== "string" || !/^\d{4}-\d{2}-\d{2}T/.test(e.createdAt) || !Number.isFinite(Date.parse(e.createdAt))) return false;
+  if (e.kind === "message" || e.kind === "edit") {
+    if (typeof e.text !== "string" || !e.text.trim() || e.text.length > MAX_TEXT) return false;
+  }
+  if (e.kind !== "message" && (typeof e.target !== "string" || !/^[a-zA-Z0-9_-]{8,80}$/.test(e.target))) return false;
+  if (e.replyTo !== undefined && (typeof e.replyTo !== "string" || !/^[a-zA-Z0-9_-]{8,80}$/.test(e.replyTo))) return false;
+  if (e.kind === "reaction" && (!REACTIONS.includes(e.emoji as Reaction) || typeof e.active !== "boolean")) return false;
+  return ["message", "edit", "delete", "reaction"].includes(e.kind);
+}
+
+export function eventPath(event: ChatEvent): string {
+  return `events/${event.createdAt.slice(0, 10).replaceAll("-", "/")}/${event.id}.json`;
+}
+
+export function parseCommit(message: string, sha: string, url: string): ChatEvent | null {
+  const index = message.indexOf(EVENT_PREFIX);
+  if (index < 0) return null;
+  try {
+    const e = JSON.parse(message.slice(index + EVENT_PREFIX.length));
+    return validEvent(e) ? { ...e, sha, url } : null;
+  } catch { return null; }
+}
+
+// Input order is Git order, oldest first. Client clocks never determine mutations.
+export function materialize(events: ChatEvent[]): Message[] {
+  const messages = new Map<string, Message>();
+  const unique = new Set<string>();
+  for (const event of events) {
+    if (unique.has(event.id)) continue;
+    unique.add(event.id);
+    if (event.kind === "message") messages.set(event.id, {
+      id: event.id, actor: event.actor, text: event.text!, createdAt: event.createdAt,
+      replyTo: event.replyTo, edited: false, deleted: false, sha: event.sha, url: event.url, reactions: {},
+    });
+  }
+  unique.clear();
+  for (const e of events) {
+    if (unique.has(e.id)) continue;
+    unique.add(e.id);
+    if (e.kind === "message") continue;
+    const m = messages.get(e.target!);
+    if (!m) continue;
+    if (e.kind === "edit" && m.actor.id === e.actor.id && !m.deleted) { m.text = e.text!; m.edited = true; }
+    if (e.kind === "delete" && m.actor.id === e.actor.id) { m.deleted = true; m.text = "This message was reverted. Git remembers."; m.reactions = {}; }
+    if (e.kind === "reaction" && !m.deleted) {
+      const actors = (m.reactions[e.emoji!] ?? []).filter(a => a.id !== e.actor.id);
+      m.reactions[e.emoji!] = e.active ? [...actors, e.actor] : actors;
+    }
+  }
+  return [...messages.values()];
+}
+
+export function mergeEvents(existing: ChatEvent[], incoming: ChatEvent[]): ChatEvent[] {
+  const result = new Map(existing.map(e => [e.id, e]));
+  for (const event of incoming) result.set(event.id, { ...result.get(event.id), ...event });
+  return [...result.values()];
+}
+
+// A sync batch carries canonical Git order; preserve older loaded history and
+// locally confirmed sends that are not visible in the fetched snapshot yet.
+export function reconcileEvents(existing: ChatEvent[], incoming: ChatEvent[]): ChatEvent[] {
+  if (!incoming.length) return existing;
+  const incomingIds = new Set(incoming.map(e => e.id));
+  const firstMatch = existing.findIndex(e => incomingIds.has(e.id));
+  if (firstMatch < 0) return mergeEvents(existing, incoming);
+  const before = existing.slice(0, firstMatch);
+  const unmatchedTail = existing.slice(firstMatch).filter(e => !incomingIds.has(e.id));
+  return mergeEvents(mergeEvents(before, incoming), unmatchedTail);
+}
+
+export function commitSubject(event: ChatEvent): string {
+  return ({ message: "feat(chat): ship a thought", edit: "fix(chat): rewrite that thought", delete: "revert(chat): plausible deniability", reaction: "chore(chat): emotional support emoji" })[event.kind];
+}
