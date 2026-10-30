@@ -47,7 +47,7 @@ export async function github(session: Session, path: string, init: RequestInit =
   const timeout = setTimeout(() => controller.abort(), 12000);
   try {
     const response = await fetch(`https://api.github.com${path}`, {
-      ...init, cache: "no-store", signal: controller.signal,
+      ...init, cache: "no-store", signal: init.signal ? AbortSignal.any([controller.signal, init.signal]) : controller.signal,
       headers: { Accept: "application/vnd.github+json", Authorization: `Bearer ${session.token}`, "X-GitHub-Api-Version": "2022-11-28", "Content-Type": "application/json", ...init.headers },
     });
     if (response.status === 304) return response;
@@ -65,6 +65,7 @@ export async function github(session: Session, path: string, init: RequestInit =
     }
     return response;
   } catch (error) {
+    if (init.signal?.aborted) throw error;
     if (error instanceof HttpError) throw error;
     throw new HttpError(502, "GitHub is taking too long. Please retry; the event ID prevents duplicate messages.");
   } finally { clearTimeout(timeout); }

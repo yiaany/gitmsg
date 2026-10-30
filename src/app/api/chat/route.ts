@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
     const query = new URLSearchParams({ sha: cursor || branch, path: "events", per_page: "100" });
     const etag = request.headers.get("if-none-match");
     let response: Response;
-    try { response = await github(session, `/repos/${repo}/commits?${query}`, { headers: etag && !cursor ? { "If-None-Match": etag } : {} }); }
+    try { response = await github(session, `/repos/${repo}/commits?${query}`, { signal: request.signal, headers: etag && !cursor ? { "If-None-Match": etag } : {} }); }
     catch (error) { if (error instanceof HttpError && error.status === 409) return json({ events: [], head: null, older: null }); throw error; }
     if (response.status === 304) return new NextResponse(null, { status: 304, headers: { "Cache-Control": "private, no-store", ETag: etag! } });
     const commits: Commit[] = await response.json();

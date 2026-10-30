@@ -14,6 +14,7 @@ import { InviteForm } from "./invite-form";
 import { JoinChat } from "./join-chat";
 import { AuthPanel } from "./auth-panel";
 import { api, ApiError, readLocal, shortSha, writeLocal } from "@/lib/client";
+import { startAdaptivePolling } from "@/lib/polling";
 import { BOTS, BOT_REPLIES, DEMO_ROOMS, DEMO_USER, demoEvents, FORTUNES } from "@/lib/demo";
 import { materialize, MAX_TEXT, mergeEvents, reconcileEvents, REACTIONS, validEvent, type Actor, type ChatEvent, type Message, type Reaction, type Room } from "@/lib/protocol";
 
@@ -64,7 +65,7 @@ export function Messenger() {
   const [sending, setSending] = useState(false);
   const sendingRef = useRef(false);
   const [syncing, setSyncing] = useState(false);
-  const syncInFlight = useRef(false);
+  const syncInFlight = useRef<AbortController | null>(null);
   const failureStreak = useRef(0);
   const [error, setError] = useState("");
   const [toast, setToast] = useState("");
@@ -87,7 +88,6 @@ export function Messenger() {
   const channel = useRef<BroadcastChannel | null>(null);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const retryEvent = useRef<ChatEvent | null>(null);
-  const idleSince = useRef(Date.now());
   const actor = room.demo ? DEMO_USER : session?.user || DEMO_USER;
   const timeline = timelines[room.id] || { events: [] };
   const messages = useMemo(() => materialize(timeline.events), [timeline.events]);
@@ -204,17 +204,22 @@ export function Messenger() {
     if (e instanceof ApiError && e.status === 401) { setSession(old => old ? { ...old, user: null } : null); writeLocal("gitmsg:connected", false); }
   }, []);
 
-  const sync = useCallback(async (historyPage = false) => {
+  const sync = useCallback(async (historyPage = false, signal?: AbortSignal) => {
     const active = roomRef.current;
-    if (active.demo || !session?.user || syncInFlight.current || Date.now() < cooldownRef.current || document.hidden) return;
-    syncInFlight.current = true; setSyncing(true);
+    if (active.demo || !session?.user || (syncInFlight.current && !syncInFlight.current.signal.aborted) || Date.now() < cooldownRef.current || document.hidden || !navigator.onLine || signal?.aborted) return;
+    const controller = new AbortController();
+    const requestSignal = signal ? AbortSignal.any([controller.signal, signal]) : controller.signal;
+    const current = () => !requestSignal.aborted && roomRef.current.id === active.id && roomRef.current.branch === active.branch;
+    syncInFlight.current = controller; setSyncing(true);
     const old = timelinesRef.current[active.id] || { events: [] };
     try {
       const query = new URLSearchParams({ repo: active.id, branch: active.branch });
       if (historyPage && old.older) query.set("cursor", old.older);
-      const response = await fetch(`/api/chat?${query}`, { headers: old.etag && !historyPage ? { "If-None-Match": old.etag } : {} });
+      const response = await fetch(`/api/chat?${query}`, { signal: requestSignal, cache: "no-store", headers: old.etag && !historyPage ? { "If-None-Match": old.etag } : {} });
+      if (!current()) return;
       if (response.status === 304) { setLastSync(new Date().toISOString()); failureStreak.current = 0; setError(""); return; }
       const data = await response.json();
+      if (!current()) return;
       if (!response.ok) throw new ApiError(data.error, response.status, data.retryAfter);
       const result = data as SyncResult;
       let incoming = result.events;
@@ -222,7 +227,8 @@ export function Messenger() {
       if (!historyPage && old.head && result.head !== old.head && result.older && !incoming.some(e => e.sha === old.head)) {
         let cursor = result.older; let found = false;
         for (let page = 0; cursor && !found && page < 10; page++) {
-          const more = await api<SyncResult>(`/api/chat?${new URLSearchParams({ repo: active.id, branch: active.branch, cursor })}`);
+          const more = await api<SyncResult>(`/api/chat?${new URLSearchParams({ repo: active.id, branch: active.branch, cursor })}`, { signal: requestSignal });
+          if (!current()) return;
           incoming = [...more.events, ...incoming];
           found = more.events.some(e => e.sha === old.head);
           cursor = more.older || "";
@@ -235,22 +241,34 @@ export function Messenger() {
       });
       setLastSync(new Date().toISOString()); setError(""); failureStreak.current = 0;
       log(`[fetch] ${historyPage ? "older history" : "origin/" + active.branch} · ${incoming.length} events`);
-    } catch (e) { failureStreak.current++; onError(e); }
-    finally { syncInFlight.current = false; setSyncing(false); }
+    } catch (e) { if (current()) { failureStreak.current++; onError(e); } }
+    finally { if (syncInFlight.current === controller) { syncInFlight.current = null; setSyncing(false); } }
   }, [session, updateTimeline, onError, log]);
 
   useEffect(() => {
     if (room.demo || !session?.user) return;
-    let disposed = false; let timeout: ReturnType<typeof setTimeout>;
-    const tick = async () => {
-      await sync();
-      if (!disposed) timeout = setTimeout(tick, Math.max(Math.min(300000, 15000 * 2 ** Math.min(failureStreak.current, 5)), document.hidden || Date.now() - idleSince.current > 120000 ? 60000 : 15000) + Math.random() * 3000);
+    failureStreak.current = 0; setLastSync(null);
+    let pageActive = true;
+    const poller = startAdaptivePolling({
+      run: signal => sync(false, signal),
+      state: () => ({ hidden: document.hidden || !pageActive, focused: document.hasFocus(), online: navigator.onLine, failures: failureStreak.current, retryAt: cooldownRef.current }),
+    });
+    const refresh = () => {
+      if (document.hidden || !navigator.onLine || !pageActive) syncInFlight.current?.abort();
+      poller.refresh();
     };
-    void tick();
-    const visible = () => { if (!document.hidden) { idleSince.current = Date.now(); void sync(); } };
-    document.addEventListener("visibilitychange", visible);
-    return () => { disposed = true; clearTimeout(timeout); document.removeEventListener("visibilitychange", visible); };
-  }, [room.id, room.demo, session, sync]);
+    const hide = () => { pageActive = false; refresh(); };
+    const show = () => { pageActive = true; refresh(); };
+    document.addEventListener("visibilitychange", refresh);
+    for (const event of ["focus", "blur", "online", "offline"]) window.addEventListener(event, refresh);
+    window.addEventListener("pagehide", hide); window.addEventListener("pageshow", show);
+    return () => {
+      poller.stop(); syncInFlight.current?.abort();
+      document.removeEventListener("visibilitychange", refresh);
+      for (const event of ["focus", "blur", "online", "offline"]) window.removeEventListener(event, refresh);
+      window.removeEventListener("pagehide", hide); window.removeEventListener("pageshow", show);
+    };
+  }, [room.id, room.branch, room.demo, session, sync]);
 
   const appendDemo = useCallback((id: string, event: ChatEvent) => {
     updateTimeline(id, old => ({ ...old, events: mergeEvents(old.events, [event]) }));
@@ -261,7 +279,7 @@ export function Messenger() {
     const active = roomRef.current;
     if (active.demo) { const saved = { ...event, sha: shortSha() }; appendDemo(active.id, saved); log(`[demo] ${event.kind} ${saved.sha} · local only`); return saved; }
     const result = await api<{ event: ChatEvent }>("/api/chat", { method: "POST", body: JSON.stringify({ repo: active.id, branch: active.branch, event }) });
-    updateTimeline(active.id, old => ({ ...old, events: mergeEvents(old.events, [result.event]), etag: undefined }));
+    updateTimeline(active.id, old => ({ ...old, events: mergeEvents(old.events, [result.event]) }));
     log(`[commit] ${result.event.sha?.slice(0, 7) || "already committed"} → origin/${active.branch}`);
     return result.event;
   }
@@ -271,7 +289,6 @@ export function Messenger() {
   async function send(event?: FormEvent) {
     event?.preventDefault();
     if (!text.trim() || sendingRef.current || cooldown || text.length > MAX_TEXT) return;
-    idleSince.current = Date.now();
     if (text.startsWith("/") && !editing) {
       const command = text.trim().toLowerCase();
       if (["/help", "/clear", "/ship", "/fortune", "/sudo", "/panic"].includes(command)) writeLocal(`gitmsg:draft:${room.id}`, "");
@@ -337,7 +354,7 @@ export function Messenger() {
   const repoUrl = `https://github.com/${room.id}`;
   const currentReply = replyTo || editing;
 
-  return <div className="app" onPointerDown={() => { idleSince.current = Date.now(); }}>
+  return <div className="app">
     <SiteHeader user={session?.user} onConnect={() => void openConnect()} onSettings={() => setModal("settings")} onSecret={() => notify("git blame: you. git praise: also you.")} />
     {confetti && <div className="confetti" aria-hidden="true">{Array.from({ length: 40 }, (_, i) => <span key={i} style={{ left: `${(i * 17.3) % 100}%`, animationDelay: `${(i % 7) * 0.08}s`, background: ["#fff", "#aaa", "#666"][i % 3] }} />)}</div>}
     <main className="main"><Frame className="workspace-frame"><FramePanel className="chat-workspace">
