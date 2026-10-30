@@ -1,0 +1,11 @@
+{
+  "manifestVersion": 1,
+  "id": "coinflip",
+  "name": "Coin flip",
+  "version": "1.0.0",
+  "description": "A cryptographically random heads or tails.",
+  "execution": "actions",
+  "entry": "index.mjs",
+  "capabilities": ["chat:write"],
+  "secureMode": "disabled"
+}

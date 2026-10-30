@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
-import { ArrowRight, ArrowUpRight, BookOpen, Check, CircleHelp, Code2, Copy, Download, ExternalLink, GitCommitHorizontal, GitFork, Hash, Info, LoaderCircle, LockKeyhole, LogOut, Menu, MessageSquare, Pencil, Plus, Reply, Search, Settings2, Smile, Trash2, Volume2, VolumeX, X } from "lucide-react";
+import { ArrowRight, ArrowUpRight, BookOpen, Bookmark, Bot, Check, CircleHelp, Code2, Copy, Download, ExternalLink, GitCommitHorizontal, GitFork, GitPullRequest, Hash, Info, LoaderCircle, LockKeyhole, LogOut, Menu, MessageSquare, MoreHorizontal, Pencil, PencilRuler, Plus, Reply, Search, Settings2, ShieldCheck, Smile, Terminal, Trash2, Volume2, VolumeX, X } from "lucide-react";
 import { Github } from "./github-icon";
 import { Button } from "./ui/button";
 import { Avatar as AvatarRoot, AvatarFallback, AvatarImage } from "./ui/avatar";
@@ -13,14 +13,24 @@ import { SiteHeader } from "./site-blocks";
 import { InviteForm } from "./invite-form";
 import { JoinChat } from "./join-chat";
 import { AuthPanel } from "./auth-panel";
+import { MediaComposer } from "./media-composer";
+import { MediaMessage } from "./media-message";
+import { RoomSecurity, type SecurityInfo } from "./room-security";
+import { Whiteboard } from "./whiteboard";
+import { Proposals } from "./proposals";
+import { ChatQR } from "./chat-qr";
+import { BotPanel } from "./bot-panel";
+import { OtherClients } from "./other-clients";
 import { api, ApiError, readLocal, shortSha, writeLocal } from "@/lib/client";
 import { startAdaptivePolling } from "@/lib/polling";
+import { decodeEvents, encryptEvent, generateKey, importKey, keyFingerprint, roomKey, storeRoomKey } from "@/lib/room-crypto";
+import { loadMedia, uploadMedia } from "@/lib/media";
 import { BOTS, BOT_REPLIES, DEMO_ROOMS, DEMO_USER, demoEvents, FORTUNES } from "@/lib/demo";
 import { materialize, MAX_TEXT, mergeEvents, reconcileEvents, REACTIONS, validEvent, type Actor, type ChatEvent, type Message, type Reaction, type Room } from "@/lib/protocol";
 
 type SessionInfo = { user: Actor | null; configured: boolean; mode: "app" | "oauth"; installUrl: string | null };
 type SyncResult = { events: ChatEvent[]; head: string | null; older: string | null };
-type Modal = "connect" | "join" | "new" | "invite" | "help" | "settings" | "inspect" | "delete" | null;
+type Modal = "connect" | "join" | "new" | "invite" | "help" | "settings" | "inspect" | "delete" | "security" | "board" | "proposals" | "bot" | "clients" | "tools" | null;
 type Timeline = { events: ChatEvent[]; etag?: string; head?: string | null; older?: string | null; fetched?: boolean };
 const SOUND_KEY = "gitmsg:sound";
 
@@ -54,6 +64,8 @@ export function Messenger() {
   const timelinesRef = useRef(timelines); timelinesRef.current = timelines;
   const roomRef = useRef(room); roomRef.current = room;
   const [session, setSession] = useState<SessionInfo | null>(null);
+  const [security, setSecurity] = useState<SecurityInfo>({ enabled: false, hasKey: false, loaded: false });
+  const securityRef = useRef(security); securityRef.current = security;
   const [modal, setModal] = useState<Modal>(null);
   const [invitedRepo, setInvitedRepo] = useState("");
   const [text, setText] = useState("");
@@ -88,10 +100,13 @@ export function Messenger() {
   const channel = useRef<BroadcastChannel | null>(null);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const retryEvent = useRef<ChatEvent | null>(null);
+  const retryWire = useRef<{ id: string; room: string; event: ChatEvent } | null>(null);
   const actor = room.demo ? DEMO_USER : session?.user || DEMO_USER;
   const timeline = timelines[room.id] || { events: [] };
   const messages = useMemo(() => materialize(timeline.events), [timeline.events]);
   const filtered = useMemo(() => search ? messages.filter(m => `${m.text} ${m.actor.login}`.toLowerCase().includes(search.toLowerCase())) : messages, [messages, search]);
+  const snapshots = useMemo(() => messages.filter(m => !m.deleted && !m.locked && m.attachments?.some(a => a.mime === "application/vnd.excalidraw+json")), [messages]);
+  const canSend = security.loaded && (!security.enabled || security.hasKey) && (room.demo || !!session?.user);
   const notify = useCallback((value: string) => setToast(value), []);
   const log = useCallback((value: string) => setLogs(old => [...old.slice(-35), value]), []);
   const later = useCallback((fn: () => void, delay: number) => { const timer = setTimeout(fn, delay); timers.current.push(timer); }, []);
@@ -120,6 +135,12 @@ export function Messenger() {
     setSound(readLocal(SOUND_KEY, false));
     setHydrated(true);
     const params = new URLSearchParams(location.search);
+    const fragmentKey = new URLSearchParams(location.hash.slice(1)).get("key");
+    if (fragmentKey) {
+      const recipient = params.get("repo");
+      if (recipient && /^[A-Za-z0-9_-]{43}$/.test(fragmentKey)) sessionStorage.setItem("gitmsg:pending-key", JSON.stringify({ repo: recipient, key: fragmentKey }));
+      history.replaceState({}, "", `${location.pathname}${location.search}`);
+    }
     const invitation = params.get("repo") || sessionStorage.getItem("gitmsg:invite");
     if (invitation) { sessionStorage.setItem("gitmsg:invite", invitation); setInvitedRepo(invitation); }
     if (params.has("auth_error")) setError(params.get("auth_error") === "not-configured" ? "GitHub is not configured on this deployment yet. The demo is ready to use." : "GitHub authorization did not finish. Please try again.");
@@ -160,6 +181,39 @@ export function Messenger() {
     }
     return () => { disposed = true; channel.current?.close(); timers.current.forEach(clearTimeout); };
   }, [updateTimeline, notify]);
+
+  const loadSecurity = useCallback(async () => {
+    const active = roomRef.current;
+    try {
+      const policy = active.demo ? readLocal<{ enabled: boolean; keyId?: string }>(`gitmsg:security:${active.id}`, { enabled: false }) : await api<{ enabled: boolean; keyId?: string }>(`/api/security?${new URLSearchParams({ repo: active.id, branch: active.branch })}`);
+      const pending = sessionStorage.getItem("gitmsg:pending-key");
+      if (pending) {
+        const candidate = JSON.parse(pending);
+        if (candidate.repo.toLowerCase() === active.id.toLowerCase()) {
+          const imported = await importKey(candidate.key);
+          if (!policy.enabled || await keyFingerprint(imported) !== policy.keyId) {
+            sessionStorage.removeItem("gitmsg:pending-key");
+            setError("The secret invite key does not match this room. Import the correct key in Room security.");
+          } else {
+            await storeRoomKey(active.id, imported); sessionStorage.removeItem("gitmsg:pending-key"); notify("Room key imported on this device. Verify the fingerprint with your friend.");
+          }
+        }
+      }
+      const key = await roomKey(active.id).catch(() => null);
+      const hasKey = !!key && (!policy.keyId || await keyFingerprint(key) === policy.keyId);
+      if (roomRef.current.id !== active.id) return;
+      setSecurity({ ...policy, hasKey, loaded: true });
+      if (policy.enabled) { writeLocal(`gitmsg:draft:${active.id}`, ""); }
+      updateTimeline(active.id, old => ({ ...old, etag: undefined }));
+      const events = timelinesRef.current[active.id]?.events || [];
+      const unlocked = await decodeEvents(active.id, active.branch, events);
+      updateTimeline(active.id, old => ({ ...old, events: mergeEvents(old.events, unlocked), etag: undefined }));
+    } catch (e) { if (roomRef.current.id === active.id) { setSecurity({ enabled: true, hasKey: false, loaded: false }); setError((e as Error).message); } }
+  }, [notify, updateTimeline]);
+  useEffect(() => {
+    setSecurity({ enabled: false, hasKey: false, loaded: false });
+    if (room.demo || session?.user) void loadSecurity();
+  }, [room.id, room.branch, session?.user?.id, loadSecurity]);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -235,6 +289,8 @@ export function Messenger() {
           if (cursor && !found && page === 9) throw new ApiError("More than 1,000 commits happened while you were away. Reload this page to fetch the latest history, then load earlier commits.", 429, 300);
         }
       }
+      incoming = await decodeEvents(active.id, active.branch, incoming);
+      if (!current()) return;
       updateTimeline(active.id, current => {
         const events = historyPage ? mergeEvents(incoming, current.events) : reconcileEvents(current.events, incoming);
         return { events, etag: historyPage ? current.etag : response.headers.get("etag") || undefined, head: historyPage ? current.head : result.head, older: historyPage || !current.fetched ? result.older : current.older, fetched: true };
@@ -275,26 +331,33 @@ export function Messenger() {
     channel.current?.postMessage({ room: id, event });
   }, [updateTimeline]);
 
-  async function submitEvent(event: ChatEvent) {
-    const active = roomRef.current;
+  async function submitEvent(event: ChatEvent, active = roomRef.current, policy = securityRef.current) {
     if (active.demo) { const saved = { ...event, sha: shortSha() }; appendDemo(active.id, saved); log(`[demo] ${event.kind} ${saved.sha} · local only`); return saved; }
-    const result = await api<{ event: ChatEvent }>("/api/chat", { method: "POST", body: JSON.stringify({ repo: active.id, branch: active.branch, event }) });
-    updateTimeline(active.id, old => ({ ...old, events: mergeEvents(old.events, [result.event]) }));
+    if (!policy.loaded) throw new Error("Wait for the room security check before sending.");
+    let wire = event;
+    if (policy.enabled) {
+      const key = await roomKey(active.id); if (!key || !policy.hasKey) throw new Error("Import the correct room key before sending.");
+      wire = retryWire.current?.id === event.id && retryWire.current.room === active.id ? retryWire.current.event : await encryptEvent(key, active.id, active.branch, event);
+      retryWire.current = { id: event.id, room: active.id, event: wire };
+    }
+    const result = await api<{ event: ChatEvent }>("/api/chat", { method: "POST", body: JSON.stringify({ repo: active.id, branch: active.branch, event: wire }) });
+    const confirmed = { ...event, sha: result.event.sha, url: result.event.url, encrypted: policy.enabled };
+    updateTimeline(active.id, old => ({ ...old, events: mergeEvents(old.events, [confirmed]) }));
     log(`[commit] ${result.event.sha?.slice(0, 7) || "already committed"} → origin/${active.branch}`);
-    return result.event;
+    return confirmed;
   }
   function makeEvent(kind: ChatEvent["kind"], data: Partial<ChatEvent>): ChatEvent {
     return { v: 1, id: crypto.randomUUID(), kind, actor, createdAt: new Date().toISOString(), ...data };
   }
   async function send(event?: FormEvent) {
     event?.preventDefault();
-    if (!text.trim() || sendingRef.current || cooldown || text.length > MAX_TEXT) return;
+    if (!text.trim() || sendingRef.current || cooldown || !canSend || text.length > MAX_TEXT) return;
     if (text.startsWith("/") && !editing) {
       const command = text.trim().toLowerCase();
       if (["/help", "/clear", "/ship", "/fortune", "/sudo", "/panic"].includes(command)) writeLocal(`gitmsg:draft:${room.id}`, "");
       if (command === "/help") { setModal("help"); setText(""); return; }
       if (command === "/clear") { notify("Nice try. Git has receipts. Use Settings to reset the demo."); setText(""); return; }
-      if (command === "/ship") { setConfetti(true); notify("🚀 Deployed to production. Thoughts and prayers."); setText(""); return; }
+      if (command === "/ship") { setConfetti(true); notify("🚀 Celebration shipped. No deployment requested — use Actions participant for that."); setText(""); return; }
       if (command === "/fortune") { notify(FORTUNES[Math.floor(Math.random() * FORTUNES.length)]); setText(""); return; }
       if (command === "/sudo") { notify("You are not in the emotional sudoers file. This incident will be reported."); setText(""); return; }
       if (command === "/panic") { setTerminal(true); log("$ git blame --everyone-but-me"); notify("Incident report generated: it worked on my machine."); setText(""); return; }
@@ -323,6 +386,52 @@ export function Messenger() {
     } catch (e) { onError(e); }
     finally { sendingRef.current = false; setSending(false); }
   }
+  async function sendMedia(file: Blob, name: string, duration?: number) {
+    if (!canSend || sendingRef.current || cooldown) throw new Error("Wait for the current commit or unlock this room first.");
+    sendingRef.current = true; setSending(true); setError("");
+    const active = roomRef.current;
+    const policy = securityRef.current;
+    try {
+      const attachment = await uploadMedia(active, file, name, policy.enabled, duration);
+      await submitEvent(makeEvent("message", { text: file.type === "application/vnd.excalidraw+json" ? "Whiteboard snapshot" : "", attachments: [attachment] }), active, policy);
+      notify(file.type === "application/vnd.excalidraw+json" ? "Board snapshot committed." : "Attachment committed.");
+    } finally { sendingRef.current = false; setSending(false); }
+  }
+  async function propose() {
+    if (!text.trim() || !canSend || sendingRef.current || room.demo || cooldown) return;
+    sendingRef.current = true; setSending(true); setError("");
+    try {
+      let event = makeEvent("message", { text: text.trim() });
+      if (security.enabled) { const key = await roomKey(room.id); if (!key) throw new Error("Room key required."); event = await encryptEvent(key, room.id, room.branch, event); }
+      const result = await api<{ number: number }>("/api/proposals", { method: "POST", body: JSON.stringify({ repo: room.id, branch: room.branch, event }) });
+      setText(""); writeLocal(`gitmsg:draft:${room.id}`, ""); notify(`Pull request #${result.number} created. Awaiting merge.`); setModal("proposals");
+    } catch (e) { onError(e); } finally { sendingRef.current = false; setSending(false); }
+  }
+  async function openSaved() {
+    if (!session?.user) { await openConnect(); return; }
+    try { const result = await api<{ room: Room }>("/api/saved", { method: "POST" }); setRooms(old => [...old.filter(r => r.id !== result.room.id), result.room]); selectRoom(result.room); setModal(null); }
+    catch (e) { onError(e); }
+  }
+  async function saveToGit(message: Message) {
+    if (message.locked || sendingRef.current || !security.loaded) return;
+    if (room.demo || !session?.user) { notify("Sign in and use a live chat to save messages to GitHub."); return; }
+    sendingRef.current = true; setSending(true);
+    const source = room;
+    try {
+      const { room: destination } = await api<{ room: Room }>("/api/saved", { method: "POST" });
+      let policy = await api<{ enabled: boolean; keyId?: string }>(`/api/security?${new URLSearchParams({ repo: destination.id, branch: destination.branch })}`);
+      if ((security.enabled || message.encrypted) && !policy.enabled) {
+        const key = await roomKey(destination.id) || await generateKey(); await storeRoomKey(destination.id, key);
+        policy = await api("/api/security", { method: "POST", body: JSON.stringify({ repo: destination.id, branch: destination.branch, keyId: await keyFingerprint(key) }) });
+      }
+      const attachments = [];
+      for (const attachment of message.attachments || []) { const blob = await loadMedia(source, attachment); attachments.push(await uploadMedia(destination, blob, attachment.name, policy.enabled, attachment.duration)); }
+      let event: ChatEvent = { v: 1, id: crypto.randomUUID(), kind: "message", actor: session.user, createdAt: new Date().toISOString(), text: message.text, ...(attachments.length ? { attachments } : {}), savedFrom: { repo: source.id, id: message.id, ...(message.sha ? { sha: message.sha } : {}) } };
+      if (policy.enabled) { const key = await roomKey(destination.id); if (!key || await keyFingerprint(key) !== policy.keyId) throw new Error("Import your Saved Messages room key first."); event = await encryptEvent(key, destination.id, destination.branch, event); }
+      await api("/api/chat", { method: "POST", body: JSON.stringify({ repo: destination.id, branch: destination.branch, event }) });
+      setRooms(old => [...old.filter(r => r.id !== destination.id), destination]); notify(policy.enabled ? "Saved encrypted. Back up the separate Saved Messages key in its security panel." : "Saved to your private gitmsg-saved repository.");
+    } catch (e) { onError(e); } finally { sendingRef.current = false; setSending(false); }
+  }
   async function react(message: Message, emoji: Reaction) {
     if (sendingRef.current || cooldown) return;
     setReactionPicker(null); sendingRef.current = true;
@@ -337,7 +446,7 @@ export function Messenger() {
   }
   function selectRoom(next: Room) {
     if (sendingRef.current) { notify("Wait for this commit to finish first."); return; }
-    writeLocal(`gitmsg:draft:${room.id}`, text); setRoom(next); setSidebar(false);
+    if (security.loaded && !security.enabled) writeLocal(`gitmsg:draft:${room.id}`, text); setRoom(next); setSidebar(false);
   }
   async function openConnect() {
     setModal("connect");
@@ -362,13 +471,14 @@ export function Messenger() {
     <aside className={`sidebar ${sidebar ? "open" : ""}`}>
       <div className="sidebar-top"><span>Chats</span><Button variant="ghost" size="icon-sm" title="New chat" aria-label="New chat" onClick={() => setModal("new")}><Plus /></Button><Button variant="ghost" size="icon-sm" className="close-navigation" aria-label="Close navigation" onClick={() => setSidebar(false)}><X /></Button></div>
       <Button variant="outline" className="sidebar-search" onClick={() => { setSearchOpen(true); setSidebar(false); }}><Search />Search<kbd>⌘ K</kbd></Button>
+      <Button variant="ghost" className="saved-room-link" onClick={() => void openSaved()}><Bookmark />Saved Messages</Button>
       <nav className="rooms" aria-label="Chats">{rooms.map(r => <Button key={r.id} variant={room.id === r.id ? "secondary" : "ghost"} onClick={() => selectRoom(r)} aria-current={room.id === r.id ? "page" : undefined} className="room"><Hash /><span>{r.name}</span>{!r.demo && <LockKeyhole />}</Button>)}</nav>
       <div className="sidebar-spacer" />
       <div className="sidebar-bottom"><Button variant="ghost" size="icon-sm" aria-label="Help" title="Help" onClick={() => setModal("help")}><CircleHelp /></Button><Button variant="ghost" size="icon-sm" aria-label="Settings" title="Settings" onClick={() => setModal("settings")}><Settings2 /></Button></div>
     </aside>
 
     <section className="workspace-content">
-      <header className="channel-header"><div className="channel-title"><Button variant="ghost" size="icon-sm" className="mobile-menu" aria-label="Open navigation" onClick={() => setSidebar(true)}><Menu /></Button><Hash size={18} /><h1>{room.name}</h1>{room.demo ? <span className="room-kind" title="Local demo with simulated replies. No GitHub commits.">Demo</span> : <span className="room-kind"><LockKeyhole size={12} />{room.private ? "Private" : "Public"}</span>}</div><div className="channel-actions"><Button variant="ghost" size="icon-sm" aria-label="Search messages" title="Search messages" onClick={() => setSearchOpen(v => !v)}><Search /></Button>{!room.demo && <Button variant="ghost" size="icon-sm" render={<a href={repoUrl} target="_blank" rel="noreferrer" />} aria-label="Open repository" title="Open repository"><Github /></Button>}<Button variant="outline" size="sm" onClick={() => setModal("invite")}><Plus />Invite</Button></div></header>
+      <header className="channel-header"><div className="channel-title"><Button variant="ghost" size="icon-sm" className="mobile-menu" aria-label="Open navigation" onClick={() => setSidebar(true)}><Menu /></Button><Hash size={18} /><h1>{room.name}</h1>{room.demo ? <span className="room-kind" title="Local demo with simulated replies. No GitHub commits.">Demo</span> : <span className="room-kind"><LockKeyhole size={12} />{security.enabled ? "Secure" : room.private ? "Private" : "Public"}</span>}</div><div className="channel-actions"><Button variant="ghost" size="icon-sm" aria-label="Room security" title="Room security" onClick={() => setModal("security")}><ShieldCheck /></Button><Button variant="ghost" size="icon-sm" aria-label="Chat tools" title="Chat tools" onClick={() => setModal("tools")}><MoreHorizontal /></Button><Button variant="outline" size="sm" onClick={() => setModal("invite")}><Plus />Invite</Button></div></header>
 
       <div className="conversation-layout"><section className="chat-panel" aria-label="Chat">
         {searchOpen && <div className="search-bar"><Search size={17} /><Input autoFocus placeholder="Search messages…" aria-label="Search conversation" value={search} onChange={e => setSearch(e.target.value)} /><span>{search ? `${filtered.length} results` : "⌘ K"}</span><Button variant="ghost" size="icon-xs" aria-label="Close search" onClick={() => { setSearchOpen(false); setSearch(""); }}><X /></Button></div>}
@@ -388,14 +498,19 @@ export function Messenger() {
                 {!grouped && <div className="message-meta"><b>{message.actor.login}</b>{message.actor.login === "dependabot" && <span className="bot-label">Bot</span>}<time dateTime={message.createdAt}>{time(message.createdAt)}</time></div>}
                 {replied && <Button variant="ghost" size="xs" className="reply-preview" onClick={() => document.getElementById(`message-${replied.id}`)?.scrollIntoView({ behavior: "smooth", block: "center" })}><Reply /><b>{replied.actor.login}</b><span>{replied.text.slice(0, 100)}</span></Button>}
                 <div className="message-text">{richText(message.text)}{message.edited && <span className="edited-label">edited</span>}</div>
+                {message.locked && <Button size="xs" variant="outline" onClick={() => setModal("security")}><LockKeyhole />Import room key</Button>}
+                {message.attachments?.map(attachment => <MediaMessage key={attachment.id} room={room} attachment={attachment} onBoard={() => setModal("board")} />)}
+                {message.savedFrom && <span className="saved-source"><Bookmark size={11} />Saved from {message.savedFrom.repo}</span>}
+                {message.bot?.command === "roll" && Number.isInteger(message.bot.value) && message.bot.value! >= 1 && message.bot.value! <= 6 && <div className="dice-result" role="img" aria-label={`Die result: ${message.bot.value}`}>{["⚀", "⚁", "⚂", "⚃", "⚄", "⚅"][message.bot.value! - 1]}</div>}
                 {Object.entries(message.reactions).some(([, users]) => users.length) && <div className="reactions">{Object.entries(message.reactions).filter(([, users]) => users.length).map(([emoji, users]) => <Button key={emoji} variant={users.some(u => u.id === actor.id) ? "secondary" : "outline"} size="xs" aria-pressed={users.some(u => u.id === actor.id)} title={users.map(u => u.login).join(", ")} onClick={() => void react(message, emoji as Reaction)}>{emoji}<span>{users.length}</span></Button>)}</div>}
               </div>
               {!message.deleted && <div className="message-tools">
                 <Button variant="ghost" size="icon-xs" aria-label={`React to message from ${message.actor.login}`} title="React" onClick={() => setReactionPicker(reactionPicker === message.id ? null : message.id)}><Smile /></Button>
                 <Button variant="ghost" size="icon-xs" aria-label="Reply to message" title="Reply" onClick={() => { setReplyTo(message); setEditing(null); composer.current?.focus(); }}><Reply /></Button>
                 <Button variant="ghost" size="icon-xs" aria-label="Copy message" title="Copy" onClick={() => void copy(message.text)}><Copy /></Button>
+                <Button variant="ghost" size="icon-xs" aria-label="Save to Git" title="Save to Git" disabled={message.locked || sending || !security.loaded} onClick={() => void saveToGit(message)}><Bookmark /></Button>
                 <Button variant="ghost" size="icon-xs" aria-label="Inspect commit" title="Inspect commit" onClick={() => { setSelected(message); setModal("inspect"); }}><GitCommitHorizontal /></Button>
-                {mine && <><Button variant="ghost" size="icon-xs" aria-label="Edit message" title="Edit" onClick={() => { setEditing(message); setReplyTo(null); setText(message.text); composer.current?.focus(); }}><Pencil /></Button><Button variant="ghost" size="icon-xs" aria-label="Delete message" title="Delete" onClick={() => { setSelected(message); setModal("delete"); }}><Trash2 /></Button></>}
+                {mine && !message.locked && <><Button variant="ghost" size="icon-xs" aria-label="Edit message" title="Edit" disabled={!message.text.trim()} onClick={() => { setEditing(message); setReplyTo(null); setText(message.text); composer.current?.focus(); }}><Pencil /></Button><Button variant="ghost" size="icon-xs" aria-label="Delete message" title="Delete" onClick={() => { setSelected(message); setModal("delete"); }}><Trash2 /></Button></>}
               </div>}
               {reactionPicker === message.id && <div className="reaction-picker">{REACTIONS.map(emoji => <Button variant="ghost" size="icon-sm" key={emoji} onClick={() => void react(message, emoji)} aria-label={`React ${emoji}`}>{emoji}</Button>)}<Button variant="ghost" size="icon-sm" aria-label="Close reactions" onClick={() => setReactionPicker(null)}><X /></Button></div>}
             </article>;
@@ -405,13 +520,14 @@ export function Messenger() {
         </div>
         <div className="composer-area">
           {error && <div className="error-banner" role="alert"><Info size={16} /><span>{error}{cooldown > 0 && ` (${cooldown}s)`}</span><Button variant="ghost" size="icon-xs" aria-label="Dismiss error" onClick={() => setError("")}><X /></Button></div>}
+          {security.enabled && !security.hasKey && <Button className="unlock-room" variant="outline" onClick={() => setModal("security")}><LockKeyhole />Import the room key to send and read encrypted messages</Button>}
           {currentReply && <div className="composing-context">{editing ? <Pencil size={13} /> : <Reply size={13} />}<span>{editing ? "Editing your message" : `Replying to ${replyTo!.actor.login}`}<small>{currentReply.text.slice(0, 80)}</small></span><Button variant="ghost" size="icon-xs" aria-label="Cancel reply or edit" onClick={() => { if (editing) setText(""); setEditing(null); setReplyTo(null); }}><X /></Button></div>}
           <form className="composer" onSubmit={send}>
-            <Textarea ref={composer} aria-label="Message" placeholder={editing ? "Edit message…" : `Message #${room.name}`} rows={2} maxLength={MAX_TEXT} value={text} onChange={e => { setText(e.target.value); writeLocal(`gitmsg:draft:${room.id}`, e.target.value); }} onKeyDown={(e: KeyboardEvent<HTMLTextAreaElement>) => { if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); void send(); } if (e.key === "ArrowUp" && !text) { const last = [...messages].reverse().find(m => m.actor.id === actor.id && !m.deleted); if (last) { setEditing(last); setText(last.text); } } }} />
-            <div className="composer-toolbar"><div><Button variant="ghost" size="icon-sm" title="Add emoji" aria-label="Add emoji" onClick={() => setEmojiPicker(v => !v)}><Smile /></Button><Button variant="ghost" size="icon-sm" title="Insert code" aria-label="Insert code formatting" onClick={() => { setText(v => `${v}\`code\``); composer.current?.focus(); }}><Code2 /></Button></div><div>{text.length > 3500 && <span className="character-count">{text.length}/{MAX_TEXT}</span>}<Button size="sm" type="submit" loading={sending} disabled={!text.trim() || cooldown > 0 || (!room.demo && !session?.user)} aria-label={editing ? "Save edit" : "Send message"}>{editing ? "Save" : "Send"}<ArrowUpRight /></Button></div></div>
+            <Textarea ref={composer} aria-label="Message" placeholder={security.enabled && !security.hasKey ? "Import the room key to unlock…" : editing ? "Edit message…" : `Message #${room.name}`} rows={2} maxLength={MAX_TEXT} value={text} onChange={e => { setText(e.target.value); if (security.loaded && !security.enabled) writeLocal(`gitmsg:draft:${room.id}`, e.target.value); }} onKeyDown={(e: KeyboardEvent<HTMLTextAreaElement>) => { if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); void send(); } if (e.key === "ArrowUp" && !text) { const last = [...messages].reverse().find(m => m.actor.id === actor.id && !m.deleted && !m.locked && m.text.trim()); if (last) { setEditing(last); setText(last.text); } } }} />
+            <div className="composer-toolbar"><div><MediaComposer key={room.id} disabled={!canSend || sending || cooldown > 0} onSend={sendMedia} onError={onError} /><Button variant="ghost" size="icon-sm" title="Whiteboard" aria-label="Open whiteboard" onClick={() => setModal("board")}><PencilRuler /></Button><Button variant="ghost" size="icon-sm" title="Add emoji" aria-label="Add emoji" onClick={() => setEmojiPicker(v => !v)}><Smile /></Button></div><div>{text.length > 3500 && <span className="character-count">{text.length}/{MAX_TEXT}</span>}{!editing && !room.demo && <Button size="icon-sm" variant="ghost" title="Propose as a real pull request" aria-label="Propose message as pull request" disabled={!text.trim() || !canSend || sending || cooldown > 0} onClick={() => void propose()}><GitPullRequest /></Button>}<Button size="sm" type="submit" loading={sending} disabled={!text.trim() || cooldown > 0 || !canSend} aria-label={editing ? "Save edit" : "Send message"}>{editing ? "Save" : "Send"}<ArrowUpRight /></Button></div></div>
             {emojiPicker && <div className="composer-emoji">{[...REACTIONS, "👋", "🤝", "🫡", "✨", "☕"].map(emoji => <Button variant="ghost" size="icon-sm" key={emoji} aria-label={`Insert ${emoji}`} onClick={() => { setText(t => t + emoji); setEmojiPicker(false); composer.current?.focus(); }}>{emoji}</Button>)}</div>}
           </form>
-          <div className="composer-footer">{room.demo ? "Local demo · simulated replies" : "Stored on GitHub · not end-to-end encrypted"}<span>Shift ↵ for a new line</span></div>
+          <div className="composer-footer">{room.demo ? "Local demo · simulated replies" : security.enabled ? "Browser-encrypted · keys stay on your devices" : "Stored on GitHub · standard mode is not encrypted"}<span>Shift ↵ for a new line</span></div>
         </div>
         {terminal && <div className="terminal-panel"><div><span>Activity log</span><Button variant="ghost" size="icon-xs" aria-label="Close log" onClick={() => setTerminal(false)}><X /></Button></div><pre>{logs.join("\n")}</pre></div>}
       </section>
@@ -422,12 +538,18 @@ export function Messenger() {
     </FramePanel></Frame></main>
 
     {toast && <div className="toast" role="status"><Check size={14} /><span>{toast}</span><Button variant="ghost" size="icon-xs" aria-label="Dismiss notification" onClick={() => setToast("")}><X /></Button></div>}
-    <Dialog open={modal !== null} onOpenChange={open => { if (!open) setModal(null); }}><DialogContent className={`modal ${modal === "help" ? "wide" : ""}`} aria-describedby="dialog-description"><DialogTitle className="sr-only">{modal === "connect" ? "Sign in with GitHub" : modal === "join" ? "Join chat" : modal === "new" ? "New conversation" : modal === "invite" ? "Invite a collaborator" : modal === "help" ? "README and keyboard shortcuts" : modal === "inspect" ? "Inspect commit" : modal === "delete" ? "Hide message" : "Preferences"}</DialogTitle><DialogDescription id="dialog-description" className="sr-only">{modal === "connect" ? "Authorize GitHub to create and access your chat repositories." : "Manage your gitmsg conversation."}</DialogDescription>
+    <Dialog open={modal !== null} onOpenChange={open => { if (!open) setModal(null); }}><DialogContent className={`modal ${modal === "board" ? "board-modal" : modal === "help" ? "wide" : ""}`} aria-describedby="dialog-description"><DialogTitle className="sr-only">{modal === "connect" ? "Sign in with GitHub" : modal === "join" ? "Join chat" : modal === "new" ? "New conversation" : modal === "invite" ? "Invite a collaborator" : modal === "help" ? "README and keyboard shortcuts" : modal === "inspect" ? "Inspect commit" : modal === "delete" ? "Hide message" : modal === "board" ? "Whiteboard" : modal === "security" ? "Room security" : modal === "proposals" ? "Message proposals" : modal === "bot" ? "GitHub Actions participant" : modal === "clients" ? "Other chat clients" : modal === "tools" ? "Chat tools" : "Preferences"}</DialogTitle><DialogDescription id="dialog-description" className="sr-only">{modal === "connect" ? "Authorize GitHub to create and access your chat repositories." : "Manage your gitmsg conversation."}</DialogDescription>
+      {modal === "tools" && <><h2>Chat tools</h2><div className="tool-list"><Button variant="ghost" onClick={() => setModal("board")}><PencilRuler /><span>Whiteboard<small>Excalidraw snapshots, real Git history</small></span></Button><Button variant="ghost" onClick={() => setModal("security")}><ShieldCheck /><span>Secure conversation<small>Browser encryption and secret key QR</small></span></Button><Button variant="ghost" onClick={() => setModal("proposals")}><GitPullRequest /><span>Message proposals<small>Review and merge real pull requests</small></span></Button><Button variant="ghost" onClick={() => setModal("bot")}><Bot /><span>Actions participant<small>Dice, standup, configured deploys</small></span></Button><Button variant="ghost" onClick={() => setModal("clients")}><Terminal /><span>Terminal / GitHub<small>Same protocol, same conversation</small></span></Button><Button variant="ghost" onClick={() => void openSaved()}><Bookmark /><span>Saved Messages<small>Your own private Git repository</small></span></Button></div>{!room.demo && <Button variant="link" render={<a href={repoUrl} target="_blank" rel="noreferrer" />}><Github />Open repository</Button>}</>}
+      {modal === "security" && <RoomSecurity key={room.id} room={room} security={security} onChange={loadSecurity} />}
+      {modal === "board" && <Whiteboard key={room.id} room={room} snapshots={snapshots} disabled={!canSend || sending} onCommit={blob => sendMedia(blob, `board-${new Date().toISOString().slice(0, 10)}.excalidraw`)} />}
+      {modal === "proposals" && <Proposals room={room} onMerged={() => { void sync(); notify("Pull request merged. Fetching the new message…"); }} />}
+      {modal === "bot" && <BotPanel room={room} secure={security.enabled} />}
+      {modal === "clients" && <OtherClients room={room} actor={actor} secure={security.enabled} />}
       {modal === "connect" && <AuthPanel session={session} onContinue={() => setModal(invitedRepo ? "join" : "new")} onClose={() => setModal(null)} />}
       {modal === "join" && session?.user && <JoinChat repo={invitedRepo} login={session.user.login} onDone={completeJoin} />}
       {modal === "new" && <NewRoom session={session} onConnect={() => void openConnect()} onDone={newRoom => { if (newRoom.demo) { setRooms(old => [...old, newRoom]); updateTimeline(newRoom.id, () => ({ events: [] })); selectRoom(newRoom); setModal(null); } else completeJoin(newRoom); notify(newRoom.demo ? "Local chat created." : "Repository connected."); }} />}
-      {modal === "invite" && <><h2>Invite to chat</h2><p>{room.demo ? "Sign in to create a shared chat. Demo rooms are local to this browser." : "1. Invite your friend's GitHub username below. 2. Share the room link. They can accept the invitation when they open it. A link alone does not grant access."}</p>{!room.demo ? <><InviteForm repo={room.id} /><Button variant="outline" onClick={() => void copy(`${location.origin}/?repo=${encodeURIComponent(room.id)}`, "Room link copied. Invite their GitHub username too; the link alone does not grant access.")}><Copy />Copy room link</Button><Button variant="link" render={<a href={`${repoUrl}/settings/access`} target="_blank" rel="noreferrer" />}>Manage collaborators on GitHub</Button></> : <Button onClick={() => void openConnect()}><Github />Sign in with GitHub</Button>}</>}
-      {modal === "inspect" && selected && <><h2>Commit</h2><div className="commit-detail"><div><span>SHA</span><code>{selected.sha || "Sync to retrieve SHA"}</code></div><div><span>Author</span><b>@{selected.actor.login}</b></div><div><span>Date</span><span>{new Date(selected.createdAt).toLocaleString("en-US")}</span></div><div><span>Branch</span><code>{room.branch}</code></div></div><pre className="json-preview">{JSON.stringify({ id: selected.id, from: selected.actor.login, text: selected.text, timestamp: selected.createdAt }, null, 2)}</pre>{room.demo ? <p className="fine-print">Simulated commit. No data was sent to GitHub.</p> : selected.url && <Button render={<a href={selected.url} target="_blank" rel="noreferrer" />}>View on GitHub<ExternalLink /></Button>}<Button variant="outline" onClick={() => void copy(JSON.stringify(selected, null, 2))}><Copy />Copy JSON</Button></>}
+      {modal === "invite" && <><h2>Invite to chat</h2><p>{room.demo ? "Sign in to create a shared chat. Demo rooms are local to this browser." : "1. Invite your friend's GitHub username below. 2. Share the room link. They can accept the invitation when they open it. A link alone does not grant access."}</p>{!room.demo ? <><InviteForm repo={room.id} /><ChatQR repo={room.id} />{security.enabled && <Button variant="outline" onClick={() => setModal("security")}><ShieldCheck />Share secret key separately</Button>}<Button variant="link" render={<a href={`${repoUrl}/settings/access`} target="_blank" rel="noreferrer" />}>Manage collaborators on GitHub</Button></> : <Button onClick={() => void openConnect()}><Github />Sign in with GitHub</Button>}</>}
+      {modal === "inspect" && selected && <><h2>Receipts</h2><div className="commit-detail"><div><span>SHA</span><code>{selected.sha || "Sync to retrieve SHA"}</code></div><div><span>Author</span><b>@{selected.actor.login}</b></div><div><span>Date</span><span>{new Date(selected.createdAt).toLocaleString("en-US")}</span></div><div><span>Branch</span><code>{room.branch}</code></div></div><h3>Loaded version history</h3>{timeline.events.filter(e => e.id === selected.id || e.target === selected.id).filter(e => e.kind !== "reaction").map(e => <div key={e.id} className="receipt"><small>{e.kind} · {new Date(e.createdAt).toLocaleString()} · {e.sha?.slice(0, 7)}</small><p>{e.text || (e.kind === "delete" ? "Hidden from conversation; old content remains in Git." : "Attachment")}</p></div>)}{room.demo ? <p className="fine-print">Simulated commit. No data was sent to GitHub.</p> : selected.url && <Button render={<a href={selected.url} target="_blank" rel="noreferrer" />}>View on GitHub<ExternalLink /></Button>}<Button variant="outline" onClick={() => void copy(JSON.stringify(selected, null, 2))}><Copy />Copy decrypted JSON</Button></>}
       {modal === "delete" && <><h2>Hide message?</h2><p>The message will be hidden in this chat. Its original text remains in Git history and downloaded copies. This is not secure erasure.</p><Button disabled={sending} loading={sending} onClick={() => void removeMessage()}><Trash2 />Hide message</Button><Button variant="ghost" onClick={() => setModal(null)}>Cancel</Button></>}
       {modal === "settings" && <><h2>Settings</h2><div className="settings-list">
         <Button variant="ghost" aria-pressed={sound} onClick={() => setSound(v => !v)}>{sound ? <Volume2 /> : <VolumeX />}Message sound<span className="setting-value">{sound ? "On" : "Off"}</span></Button>
@@ -436,7 +558,7 @@ export function Messenger() {
         {room.demo && <Button variant="ghost" onClick={() => { updateTimeline(room.id, () => ({ events: demoEvents(room.id) })); setModal(null); notify("Demo reset."); }}><GitFork />Reset demo</Button>}
         {session?.user && <Button variant="ghost" onClick={() => void logout()}><LogOut />Sign out</Button>}
       </div></>}
-      {modal === "help" && <><h2>Help</h2><p>Each live chat is a GitHub repository. Messages, edits, and reactions are stored as commits.</p><dl className="shortcuts"><dt>Enter</dt><dd>Send message</dd><dt>Shift ↵</dt><dd>New line</dd><dt>⌘ / Ctrl K</dt><dd>Search messages</dd><dt>↑ in empty input</dt><dd>Edit last message</dd><dt>Esc</dt><dd>Close dialog</dd></dl><p className="fine-print">Demo messages stay in this browser. Live messages are not end-to-end encrypted. Edits and deletions preserve Git history. Only invite trusted collaborators. Free hosting has usage limits.</p></>}
+      {modal === "help" && <><h2>Help</h2><p>Each live chat is a GitHub repository. Messages, attachments, drawings and reactions are commits. Use the microphone to record, the image button to send a picture, and Chat tools for everything else.</p><dl className="shortcuts"><dt>Enter</dt><dd>Send message</dd><dt>Shift ↵</dt><dd>New line</dd><dt>⌘ / Ctrl K</dt><dd>Search messages</dd><dt>↑ in empty input</dt><dd>Edit last message</dd><dt>Esc</dt><dd>Close dialog</dd></dl><p className="fine-print">Secure mode encrypts future content in your browser. Standard mode is readable by GitHub. Old plaintext, metadata and Git history remain. Keys need backups; this is not audited high-assurance messaging. Only invite trusted collaborators. Free hosting and Actions have usage limits.</p></>}
     </DialogContent></Dialog>
   </div>;
 }

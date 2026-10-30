@@ -25,9 +25,9 @@ export function appUrl() {
 export function sameOrigin(request: NextRequest) {
   if (request.headers.get("origin") !== appUrl()) throw new HttpError(403, "Cross-origin requests are not allowed.");
 }
-export async function body<T>(request: NextRequest): Promise<T> {
+export async function body<T>(request: NextRequest, maxBytes = 24000): Promise<T> {
   if (!request.headers.get("content-type")?.startsWith("application/json")) throw new HttpError(415, "Send JSON, not vibes.");
-  if (Number(request.headers.get("content-length") ?? 0) > 24000) throw new HttpError(413, "That payload needs its own repository.");
+  if (Number(request.headers.get("content-length") ?? 0) > maxBytes) throw new HttpError(413, "That payload needs its own repository.");
   // Bound actual bytes too; Content-Length can be missing or untrusted.
   const reader = request.body?.getReader();
   if (!reader) throw new HttpError(400, "Missing request body.");
@@ -36,7 +36,7 @@ export async function body<T>(request: NextRequest): Promise<T> {
     const { value, done } = await reader.read();
     if (done) break;
     size += value.byteLength;
-    if (size > 24000) { await reader.cancel(); throw new HttpError(413, "That payload needs its own repository."); }
+    if (size > maxBytes) { await reader.cancel(); throw new HttpError(413, "That payload needs its own repository."); }
     chunks.push(value);
   }
   try { return JSON.parse(Buffer.concat(chunks).toString("utf8")) as T; }

@@ -1,0 +1,32 @@
+name: gitmsg chat participant
+on:
+  workflow_dispatch:
+    inputs:
+      command:
+        type: choice
+        options: [roll, standup, deploy]
+        required: true
+      branch:
+        type: string
+        default: main
+        required: true
+permissions:
+  contents: write
+  actions: write
+concurrency:
+  group: gitmsg-bot-${{ inputs.branch }}
+  cancel-in-progress: false
+jobs:
+  reply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Run the chat participant
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITMSG_REPO: ${{ github.repository }}
+          GITMSG_BRANCH: ${{ inputs.branch }}
+          GITMSG_COMMAND: ${{ inputs.command }}
+          GITMSG_REQUESTER: ${{ github.actor }}
+        run: node .github/scripts/gitmsg-bot.cjs

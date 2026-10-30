@@ -1,0 +1,11 @@
+{
+  "manifestVersion": 1,
+  "id": "your-plugin",
+  "name": "Your plugin",
+  "version": "1.0.0",
+  "description": "Describe the explicit user-triggered operation.",
+  "execution": "actions",
+  "entry": "index.mjs",
+  "capabilities": ["chat:write"],
+  "secureMode": "disabled"
+}

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { body, failure, getSession, github, HttpError, json, sameOrigin, throttle } from "@/lib/server";
-import { commitSubject, EVENT_PREFIX, eventPath, parseCommit, validEvent, validRepo, type ChatEvent } from "@/lib/protocol";
+import { parseCommit, validEvent, validRepo, type ChatEvent } from "@/lib/protocol";
+import { roomPolicy } from "@/lib/room-policy";
+import { storeEvent } from "@/lib/event-store";
 
 type Commit = { sha: string; html_url: string; commit: { message: string }; parents: { sha: string }[] };
 export const maxDuration = 60;
@@ -30,31 +32,14 @@ export async function POST(request: NextRequest) {
     sameOrigin(request);
     const session = await getSession();
     throttle(`write:${session.user.id}`, 18);
-    const input = await body<{ repo: string; branch: string; event: ChatEvent }>(request);
+    const input = await body<{ repo: string; branch: string; event: ChatEvent }>(request, 48000);
     if (!validRepo(input.repo) || typeof input.branch !== "string" || !input.branch || input.branch.length > 200) throw new HttpError(400, "Invalid repository.");
     const event = { ...input.event, actor: session.user };
     if (!validEvent(event) || Math.abs(Date.now() - Date.parse(event.createdAt)) > 86400000) throw new HttpError(400, "Invalid event. Messages can contain up to 4,000 characters.");
+    const policy = await roomPolicy(session, input.repo, input.branch);
+    if (policy.enabled && (!event.sealed || event.sealed.keyId !== policy.keyId)) throw new HttpError(409, "Secure mode is enabled. Import the correct room key and retry; plaintext is not accepted.");
     // Do not allow client-provided URLs / SHAs to become protocol data.
     delete event.sha; delete event.url;
-    const path = eventPath(event);
-    const payload = JSON.stringify({ branch: input.branch, message: `${commitSubject(event)}\n\n${EVENT_PREFIX}${JSON.stringify(event)}`, content: Buffer.from(JSON.stringify(event, null, 2)).toString("base64") });
-    for (let attempt = 0; attempt < 3; attempt++) {
-      try {
-        const result = await (await github(session, `/repos/${input.repo}/contents/${path}`, { method: "PUT", body: payload })).json();
-        return json({ event: { ...event, sha: result.commit.sha, url: `https://github.com/${input.repo}/commit/${result.commit.sha}` } }, 201);
-      } catch (error) {
-        if (!(error instanceof HttpError) || ![409, 422].includes(error.status)) throw error;
-        // A lost successful response must not create a duplicate event on retry.
-        try {
-          const existing = await (await github(session, `/repos/${input.repo}/contents/${path}?ref=${encodeURIComponent(input.branch)}`)).json();
-          const stored = JSON.parse(Buffer.from(existing.content, "base64").toString());
-          if (JSON.stringify(stored) === JSON.stringify(event)) return json({ event }, 200);
-          throw new HttpError(409, "This event ID already exists. Refresh before sending again.");
-        } catch (lookup) { if (!(lookup instanceof HttpError) || lookup.status !== 404) throw lookup; }
-        if (attempt === 2 || error.status === 422) throw error;
-        await new Promise(resolve => setTimeout(resolve, 200 * 2 ** attempt + Math.random() * 200));
-      }
-    }
-    throw new HttpError(409, "The branch moved too quickly. Please retry.");
+    return json({ event: await storeEvent(session, input.repo, input.branch, event) }, 201);
   } catch (error) { return failure(error); }
 }

@@ -9,6 +9,12 @@ A GitHub-backed messenger. Messages are Git commits; conversations are repositor
 - GitHub OAuth with state + PKCE; first sign-in creates or reuses a private `gitmsg-inbox`. Create separate private chats or connect an existing writable repository.
 - Invite collaborators by GitHub username inside the chat; recipients must accept their invitation on GitHub.
 - Real messages, replies, edits, deletions/tombstones, and reactions persisted as individual files and commits.
+- Voice notes (record, preview, discard, send; 60 seconds), locally resized pictures and attachment downloads. Files are real Git blobs, at most 2 MiB each.
+- Saved Messages in your private `gitmsg-saved` repo; saving copies attachments, and secure sources require encrypted destinations.
+- Excalidraw with explicit snapshot commits and a version selector, not simulated collaboration or live cursors.
+- Opt-in browser encryption, real room/key QR codes, key backups/import and SHA-256 fingerprint comparison. See [encryption](docs/ENCRYPTION.md).
+- Real pull-request messages, a dependency-free [Node CLI](public/integrations/gitmsg.mjs), and GitHub-editor posting instructions. See [protocol](docs/PROTOCOL.md).
+- Owner-installed Actions participant: animated dice results, 24-hour standup and explicitly configured deployment requests. See [installation](docs/BOTS.md).
 - Paginated history, loaded-message search, commit inspection, JSON export, live-repository clone commands, drafts, keyboard shortcuts, and optional sound.
 - `/ship`, `/fortune`, `/shrug`, `/panic`, `/sudo`, `/help`, and a suspiciously familiar secret key sequence.
 
@@ -38,7 +44,7 @@ Create a GitHub App with these settings:
 
 - Callback URL: `https://YOUR-DOMAIN/api/auth/callback`.
 - Enable user authorization. This app uses **user access tokens**, not installation tokens, so GitHub enforces the intersection of the user's access and the App's permissions.
-- Repository permissions: **Contents: read and write**, **Metadata: read**. Do not request Actions, Workflows, or Checks permissions.
+- Baseline repository permissions: **Contents: read and write**, **Metadata: read**. Optional PR messages require **Pull requests: read and write**; bot dispatch requires **Actions: read and write**. Workflow installation stays manual; Workflows and Checks are not requested by the website. Reauthorize/reapprove an installation after permission changes.
 - Disable webhooks: this version uses adaptive conditional polling and does not require a webhook endpoint.
 - Set `GITHUB_AUTH_MODE=app`, `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, and optional `GITHUB_APP_INSTALL_URL` to your App's installation URL. The client ID is not the numeric App ID.
 - Each participant authorizes the app. The repository owner installs the App on the selected chat repo. For an organization repo, its administrator may need to approve installation.
@@ -67,7 +73,7 @@ Browser → authenticated Next.js route → GitHub Contents API
                          one event = one actual commit
 ```
 
-A Contents API PUT creates the JSON file and commit in one request. The structured event is also included in the commit body, so reading a page of up to 100 events requires one commit-history request, not 100 file reads. Do not place secrets in commit subjects or treat commit bodies as encrypted storage.
+A Contents API PUT creates the JSON file and commit in one request. The structured event is also included in the commit body, so reading a page of up to 100 events requires one commit-history request, not 100 file reads. In standard mode this is plaintext. Secure mode stores an authenticated encrypted envelope in both places; never put a secret key in the repository or commit subject.
 
 The protocol is append-only: `message`, `edit`, `delete`, `reaction`. Materialization follows Git history order rather than client timestamps. Edits/deletions only affect the original author's messages in the UI. Reactions use explicit active/inactive events, not ambiguous toggles.
 
@@ -80,11 +86,11 @@ There is **no persistent message database**. Live history is kept in memory for 
 The design optimizes for **many people looking at the demo**, not an unlimited global public chatroom:
 
 - `/` is statically prerendered and CDN-served. Anonymous demo users do not call server routes unless they choose to connect GitHub.
-- No paid database, Actions runner, file storage, LFS, always-on websocket, or third-party realtime subscription.
+- No paid database, separate storage service, LFS, always-on websocket, or third-party realtime subscription. Attachments use GitHub blobs. Optional Actions jobs use the repository owner's quota, not a dedicated always-on runner.
 - GitHub credentials and API budgets belong to each authenticated user. There is no shared personal token bottleneck for every visitor. GitHub App user tokens still use the user's rate-limit budget; they are not installation-token quotas.
 - Only the selected live room syncs: roughly every 2 seconds in a focused, visible tab, or every 60 seconds in a visible but unfocused window. Hidden/offline pages make no polling requests. Returning to the tab triggers a prompt check; closing/switching rooms cancels pending work. Slow requests never overlap, and errors back off exponentially up to 5 minutes. Focus changes cannot bypass a GitHub cooldown.
 - Conditional ETag requests avoid downloading unchanged history. Authenticated GitHub `304` responses generally do not count against the primary rate limit, but still incur network/server invocations and can count toward secondary limits.
-- One event write per action; 4,000-character messages, bounded request body size, no uploads, no typing-indicator commits.
+- One event write per action; attachments add a separate blob commit. 4,000-character messages, 2 MiB attachments, bounded request bodies, no typing-indicator commits. Repositories grow permanently; this is deliberately not a large-media service.
 - Cooldown honors GitHub `Retry-After` / reset headers. Composer text is preserved after failures.
 - Server-side per-instance token buckets limit writes and reads. **These are best-effort abuse controls, not a global distributed rate limiter.** Configure Vercel Firewall rules for `/api/*` before a public launch; a determined attacker can otherwise exhaust free invocations. Use the controls available on your plan.
 
@@ -94,7 +100,7 @@ GitHub enforces primary **and secondary** rate limits, including content-creatio
 
 ## Security and honest limitations
 
-- **Not end-to-end encrypted.** GitHub and the app server can access live plaintext. GPG signatures do not encrypt messages.
+- **Standard mode is not encrypted.** Secure mode encrypts future event content and media in the browser using AES-256-GCM; SHA-256 is a public fingerprint/integrity check, not a password or encryption key. See [trust model and key recovery](docs/ENCRYPTION.md). No independent audit, forward secrecy, verified author signatures or server-compromise resistance is claimed.
 - **Deleting a message is not erasure.** Its text remains in older commits and downloaded clones. Deletions are UI tombstones, not actual `git revert` operations.
 - GitHub repository access is the permission boundary. Private repos require accepted collaborator invitations. Public repos are public, even if their chat UI has a login screen.
 - Removing a collaborator cannot revoke already downloaded history.
@@ -107,3 +113,7 @@ GitHub enforces primary **and secondary** rate limits, including content-creatio
 Live OAuth, repository creation, and collaborator invitations require the deployment's real GitHub credentials. Automated protocol/session tests do not substitute for a live two-account end-to-end test.
 
 See `THIRD_PARTY_NOTICES.md` for coss UI attribution and font licensing.
+
+## Contribute integrations / plugins
+
+Start with [CONTRIBUTING.md](CONTRIBUTING.md), [plugin contracts](docs/PLUGINS.md), and [the working starter](plugins/coinflip/README.md). Submit source, a manifest, documentation and tests using the [plugin PR template](.github/PULL_REQUEST_TEMPLATE/plugin.md). Extensions are reviewed source, not remotely loaded JavaScript. This release provides the protocol integration kit; an automatic plugin marketplace/runtime is a future step, not a hidden permission grant.

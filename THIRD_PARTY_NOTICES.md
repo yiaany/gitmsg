@@ -30,3 +30,17 @@ SOFTWARE.
 https://github.com/bklit/bklit-ui is the reference for the monochrome visual direction and Cal Sans / Geist Mono typography. No bklit branding, illustrations, or marketing copy is included.
 
 Self-hosted font binaries and their SIL Open Font License are in `public/fonts/`.
+
+# Excalidraw and QR generation
+
+`@excalidraw/excalidraw` 0.18.1: Copyright (c) 2020 Excalidraw, MIT License.
+`qrcode-generator` 2.0.4: Copyright (c) 2009 Kazuhiko Arase, MIT License.
+The full MIT terms above apply to both notices.
+
+Unmodified Excalidraw font binaries are self-hosted under `public/excalidraw/fonts/`.
+Their original name-table copyright and license metadata is preserved byte-for-byte.
+See `public/excalidraw/LICENSES.md` and `BUNDLED-NOTICES.txt` for attribution,
+upstream sources and bundled software notices. Run `npm run assets` to reproduce
+the assets from the pinned dependency without network access.
+`scripts/excalidraw-local-fonts.cjs` adapts the pinned package's font fallback
+URL during bundling to remain same-origin; glyphs/font binaries are unchanged.
