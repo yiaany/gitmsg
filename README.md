@@ -4,14 +4,13 @@ A GitHub-backed messenger. Messages are Git commits; conversations are repositor
 
 ## What works
 
-- Minimal English chat UI using Base UI-backed coss UI components, a monochrome dark palette, and self-hosted Cal Sans / Geist Mono typography inspired by bklit.
+- Minimal English chat UI with real MIT-licensed Kokonut UI source components, accessible Base UI primitives, a monochrome dark palette and self-hosted Geist / Geist Mono typography. See [component provenance](src/components/kokonutui/README.md).
 - Zero-setup local demo with three seeded rooms, simulated bot replies, local persistence, and same-browser cross-tab updates.
 - GitHub OAuth with state + PKCE; first sign-in creates or reuses a private `gitmsg-inbox`. Create separate private chats or connect an existing writable repository.
 - Invite collaborators by GitHub username inside the chat; recipients must accept their invitation on GitHub.
 - Real messages, replies, edits, deletions/tombstones, and reactions persisted as individual files and commits.
 - Voice notes (record, preview, discard, send; 60 seconds), locally resized pictures and attachment downloads. Files are real Git blobs, at most 2 MiB each.
 - Saved Messages in your private `gitmsg-saved` repo; saving copies attachments, and secure sources require encrypted destinations.
-- Excalidraw with explicit snapshot commits and a version selector, not simulated collaboration or live cursors.
 - Opt-in browser encryption, real room/key QR codes, key backups/import and SHA-256 fingerprint comparison. See [encryption](docs/ENCRYPTION.md).
 - Real pull-request messages, a dependency-free [Node CLI](public/integrations/gitmsg.mjs), and GitHub-editor posting instructions. See [protocol](docs/PROTOCOL.md).
 - Owner-installed Actions participant: animated dice results, 24-hour standup and explicitly configured deployment requests. See [installation](docs/BOTS.md).

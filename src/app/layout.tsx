@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./theme.css";
 import "./messenger.css";
+import { MotionProvider } from "@/components/motion-provider";
 
 export const metadata: Metadata = {
   title: "gitmsg",
@@ -12,5 +13,5 @@ export const metadata: Metadata = {
 };
 export const viewport: Viewport = { width: "device-width", initialScale: 1, themeColor: "#141414" };
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="en" className="dark"><head><link rel="preload" href="/fonts/CalSansVF.woff2" as="font" type="font/woff2" crossOrigin="anonymous" /></head><body>{children}</body></html>;
+  return <html lang="en" className="dark"><head><link rel="preload" href="/fonts/Geist-latin.woff2" as="font" type="font/woff2" crossOrigin="anonymous" /></head><body><MotionProvider>{children}</MotionProvider></body></html>;
 }

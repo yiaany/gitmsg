@@ -4,10 +4,12 @@
 
 @font-face { font-family: "Cal Sans"; src: url("/fonts/CalSansVF.woff2") format("woff2"); font-weight: 100 900; font-style: normal; font-display: swap; }
 @font-face { font-family: "Geist Mono"; src: url("/fonts/GeistMono-latin.woff2") format("woff2"); font-weight: 100 900; font-style: normal; font-display: swap; }
+@font-face { font-family: "Geist"; src: url("/fonts/Geist-latin.woff2") format("woff2"); font-weight: 100 900; font-style: normal; font-display: swap; }
+@font-face { font-family: "Geist"; src: url("/fonts/Geist-cyrillic.woff2") format("woff2"); font-weight: 100 900; font-style: normal; font-display: swap; unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116; }
 
 @theme inline {
-  --font-sans: "Cal Sans", Arial, sans-serif;
-  --font-heading: "Cal Sans", Arial, sans-serif;
+  --font-sans: "Geist", Arial, sans-serif;
+  --font-heading: "Geist", Arial, sans-serif;
   --font-mono: "Geist Mono", monospace;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -33,20 +35,25 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
-/* Neutral dark tokens from coss UI, also used by bklit. */
+/* Kokonut UI neutral surfaces and hairlines, adapted to gitmsg's charcoal palette. */
 :root {
-  --radius: 0.625rem;
-  --background: color-mix(in srgb, var(--color-neutral-950) 96%, var(--color-white));
-  --foreground: var(--color-neutral-100);
-  --card: color-mix(in srgb, var(--background) 98%, var(--color-white));
-  --popover: color-mix(in srgb, var(--background) 96%, var(--color-white));
-  --primary: var(--color-neutral-100);
-  --primary-foreground: var(--color-neutral-800);
-  --secondary: --alpha(var(--color-white) / 4%);
-  --muted-foreground: color-mix(in srgb, var(--color-neutral-500) 90%, var(--color-white));
-  --border: --alpha(var(--color-white) / 6%);
-  --input: --alpha(var(--color-white) / 8%);
-  --ring: var(--color-neutral-500);
+  --radius: 0.5rem;
+  --background: #141414;
+  --foreground: #f4f4f5;
+  --card: #18181b;
+  --popover: #1c1c1f;
+  --primary: #fafafa;
+  --primary-foreground: #18181b;
+  --secondary: rgb(255 255 255 / 5%);
+  --muted-foreground: #a1a1aa;
+  --border: rgb(255 255 255 / 10%);
+  --input: rgb(255 255 255 / 14%);
+  --ring: #a1a1aa;
+  --surface-hover: rgb(255 255 255 / 7%);
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --duration-fast: 150ms;
+  --duration-normal: 220ms;
+  --shadow-panel: 0 24px 80px -36px rgb(0 0 0 / 60%), 0 1px 0 rgb(255 255 255 / 4%) inset;
   color-scheme: dark;
 }
 
@@ -59,4 +66,13 @@
   button:disabled { cursor: default; }
   a { text-underline-offset: 3px; }
   ::selection { background: #ffffff26; }
+}
+
+/* Transforms/opacity carry motion; no global animation loop or transition-all. */
+[data-slot=button] { transition-property: background-color, color, border-color, opacity, transform; transition-duration: var(--duration-fast); transition-timing-function: var(--ease-out); }
+[data-slot=button]:active:not(:disabled) { transform: scale(.97); }
+.lucide { stroke-width: 1.75; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
+  [data-slot=button]:active:not(:disabled) { transform: none; }
 }

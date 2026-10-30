@@ -24,12 +24,14 @@ test("the app shell is static, framed safely, and English", { skip: !origin }, a
   assert.match(await response.text(), /lang="en"/);
 });
 
-test("the messenger shell stays minimal and uses coss controls", { skip: !origin }, async () => {
+test("the messenger shell stays minimal with Kokonut UI and accessible controls", { skip: !origin }, async () => {
   const html = await (await fetch(origin!)).text();
   assert.match(html, /Sign in with GitHub/);
   assert.match(html, /data-slot="frame"/);
   assert.match(html, /data-slot="textarea-control"/);
-  assert.match(html, /CalSansVF\.woff2/);
+  assert.match(html, /Geist-latin\.woff2/);
+  assert.match(html, /Search messages/);
+  assert.doesNotMatch(html, /Open whiteboard|Excalidraw|board-modal/);
   assert.doesNotMatch(html, /Under the hood|Receipts\. Literally|Take your baggage|All the chat|extremely online|BETA-ISH/);
 });
 
@@ -43,7 +45,7 @@ test("onboarding and invitations require a session and same-origin requests", { 
 });
 
 test("self-hosted typography is available", { skip: !origin }, async () => {
-  for (const name of ["CalSansVF.woff2", "GeistMono-latin.woff2"]) {
+  for (const name of ["Geist-latin.woff2", "Geist-cyrillic.woff2", "GeistMono-latin.woff2"]) {
     const response = await fetch(`${origin}/fonts/${name}`);
     assert.equal(response.status, 200);
     const bytes = new Uint8Array(await response.arrayBuffer());

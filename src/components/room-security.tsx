@@ -35,7 +35,7 @@ export function RoomSecurity({ room, security, onChange }: { room: Room; securit
   }
   let svg = "";
   if (share) { const qr = qrcode(0, "M"); qr.addData(share); qr.make(); svg = qr.createSvgTag({ cellSize: 4, margin: 4, scalable: true }); }
-  return <><h2><ShieldCheck size={22} /> Secure conversation</h2><p>Messages, voice notes, pictures and board snapshots are encrypted in your browser with AES-256-GCM. GitHub receives ciphertext, not the key.</p>
+  return <><h2><ShieldCheck size={22} /> Secure conversation</h2><p>Messages and attachments are encrypted in your browser with AES-256-GCM. GitHub receives ciphertext, not the key.</p>
     <div className="security-status"><LockKeyhole /><span>{security.enabled ? security.hasKey ? "Secure mode · key on this device" : "Secure mode · key required" : "Standard mode · GitHub can read content"}</span></div>
     <p className="fine-print">This protects future content, not old commits. Authors, timing, sizes and repository membership remain visible. No forward secrecy, identity signatures or independent security audit. Trust the website and everyone with the key.</p>
     {room.demo && <p className="fine-print">Open a live private chat to enable enforced encryption. Demo messages stay in this browser.</p>}

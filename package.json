@@ -10,15 +10,14 @@
     "build": "next build --webpack",
     "start": "next start --hostname 0.0.0.0",
     "typecheck": "tsc --noEmit",
-    "test": "tsx --test tests/*.test.ts",
-    "assets": "node scripts/package-assets.mjs"
+    "test": "tsx --test tests/*.test.ts"
   },
   "dependencies": {
     "@base-ui/react": "1.9.0",
-    "@excalidraw/excalidraw": "0.18.1",
     "class-variance-authority": "0.7.1",
     "clsx": "2.1.1",
     "lucide-react": "1.64.0",
+    "motion": "14.9.0",
     "next": "16.4.3",
     "qrcode-generator": "2.0.4",
     "react": "19.3.1",

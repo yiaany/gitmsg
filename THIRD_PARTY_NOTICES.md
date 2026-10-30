@@ -1,6 +1,6 @@
 # coss UI
 
-Components in `src/components/ui/` are adapted from https://github.com/cosscom/ui/tree/main/packages/ui/src/components. Local import paths replace workspace aliases; unused variants and helpers are omitted. The dark neutral palette and radius tokens in `src/app/theme.css` come from coss UI. Application layout is specific to gitmsg.
+Components in `src/components/ui/` are adapted from https://github.com/cosscom/ui/tree/main/packages/ui/src/components. Local import paths replace workspace aliases; unused variants and helpers are omitted. Buttons and dialogs are restyled with the Kokonut UI neutral tokens. Application layout is specific to gitmsg.
 
 MIT License
 
@@ -27,20 +27,24 @@ SOFTWARE.
 
 # Typography and design reference
 
-https://github.com/bklit/bklit-ui is the reference for the monochrome visual direction and Cal Sans / Geist Mono typography. No bklit branding, illustrations, or marketing copy is included.
+The initial monochrome direction used https://github.com/bklit/bklit-ui as a reference. The current typography and component styling use Kokonut UI's Geist / Geist Mono stack. No upstream branding, illustrations or marketing copy is included.
 
 Self-hosted font binaries and their SIL Open Font License are in `public/fonts/`.
 
-# Excalidraw and QR generation
+# Kokonut UI
 
-`@excalidraw/excalidraw` 0.18.1: Copyright (c) 2020 Excalidraw, MIT License.
+`src/components/kokonutui/` contains source downloaded directly from
+https://github.com/kokonut-labs/kokonutui at commit
+`b794a23376a3c016dd39924d17b9068b3d08006f`.
+Copyright (c) 2025 kokonutUI, MIT License. Full original terms are in
+`src/components/kokonutui/LICENSE`; component author headers are preserved.
+See that directory's README and `sources.json` for source URLs, hashes and
+local adaptations. Neutral hairlines, easing and prompt framing also reference
+the upstream `app/globals.css` and `components/kokonutui/ai-prompt.tsx`.
+Geist Latin and Cyrillic WOFF2 files are unmodified copies of the fonts served
+by kokonutui.com, redistributed under the included SIL Open Font License.
+
+# QR generation
+
 `qrcode-generator` 2.0.4: Copyright (c) 2009 Kazuhiko Arase, MIT License.
-The full MIT terms above apply to both notices.
-
-Unmodified Excalidraw font binaries are self-hosted under `public/excalidraw/fonts/`.
-Their original name-table copyright and license metadata is preserved byte-for-byte.
-See `public/excalidraw/LICENSES.md` and `BUNDLED-NOTICES.txt` for attribution,
-upstream sources and bundled software notices. Run `npm run assets` to reproduce
-the assets from the pinned dependency without network access.
-`scripts/excalidraw-local-fonts.cjs` adapts the pinned package's font fallback
-URL during bundling to remain same-origin; glyphs/font binaries are unchanged.
+The full MIT terms above apply to this notice.

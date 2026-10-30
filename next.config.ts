@@ -1,12 +1,7 @@
 import type { NextConfig } from "next";
-import path from "node:path";
 
 const config: NextConfig = {
   poweredByHeader: false,
-  webpack(config) {
-    config.module.rules.push({ test: /@excalidraw\/excalidraw\/dist\/prod\/chunk-K2UTITRG\.js$/, use: [{ loader: path.resolve("scripts/excalidraw-local-fonts.cjs") }] });
-    return config;
-  },
   async headers() {
     return [{ source: "/:path*", headers: [
       { key: "X-Content-Type-Options", value: "nosniff" },

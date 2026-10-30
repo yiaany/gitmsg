@@ -1,11 +1,12 @@
 # Contributing
 
 Use Node 22. Install with `npm ci --include=dev --include=optional`, then run
-`npm test`, `npm run typecheck`, `npm run assets`, and `npm run build`.
+`npm test`, `npm run typecheck`, and `npm run build`.
 Use `TEST_BASE_URL` to include HTTP smoke tests against your local server.
 
 Keep the UI English, monochrome, keyboard-accessible and built with the existing
-coss/Base UI components. Do not add analytics, external fonts, arbitrary HTML,
+Kokonut UI components and Base UI primitives. Keep reduced-motion support and
+source/license attribution. Do not add analytics, external fonts, arbitrary HTML,
 paid infrastructure, secrets or token/key logging. Live features must use real
 GitHub operations; simulations must be explicitly labeled demo-only.
 

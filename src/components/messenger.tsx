@@ -1,7 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
-import { ArrowRight, ArrowUpRight, BookOpen, Bookmark, Bot, Check, CircleHelp, Code2, Copy, Download, ExternalLink, GitCommitHorizontal, GitFork, GitPullRequest, Hash, Info, LoaderCircle, LockKeyhole, LogOut, Menu, MessageSquare, MoreHorizontal, Pencil, PencilRuler, Plus, Reply, Search, Settings2, ShieldCheck, Smile, Terminal, Trash2, Volume2, VolumeX, X } from "lucide-react";
+import { motion, useReducedMotion } from "motion/react";
+import CommandButton from "./kokonutui/command-button";
+import ParticleButton from "./kokonutui/particle-button";
+import Loader from "./kokonutui/loader";
+import { ArrowRight, ArrowUpRight, BookOpen, Bookmark, Bot, Check, CircleHelp, Code2, Copy, Download, ExternalLink, GitCommitHorizontal, GitFork, GitPullRequest, Hash, Info, LoaderCircle, LockKeyhole, LogOut, Menu, MessageSquare, MoreHorizontal, Pencil, Plus, Reply, Search, Settings2, ShieldCheck, Smile, Terminal, Trash2, Volume2, VolumeX, X } from "lucide-react";
 import { Github } from "./github-icon";
 import { Button } from "./ui/button";
 import { Avatar as AvatarRoot, AvatarFallback, AvatarImage } from "./ui/avatar";
@@ -16,7 +20,6 @@ import { AuthPanel } from "./auth-panel";
 import { MediaComposer } from "./media-composer";
 import { MediaMessage } from "./media-message";
 import { RoomSecurity, type SecurityInfo } from "./room-security";
-import { Whiteboard } from "./whiteboard";
 import { Proposals } from "./proposals";
 import { ChatQR } from "./chat-qr";
 import { BotPanel } from "./bot-panel";
@@ -30,7 +33,7 @@ import { materialize, MAX_TEXT, mergeEvents, reconcileEvents, REACTIONS, validEv
 
 type SessionInfo = { user: Actor | null; configured: boolean; mode: "app" | "oauth"; installUrl: string | null };
 type SyncResult = { events: ChatEvent[]; head: string | null; older: string | null };
-type Modal = "connect" | "join" | "new" | "invite" | "help" | "settings" | "inspect" | "delete" | "security" | "board" | "proposals" | "bot" | "clients" | "tools" | null;
+type Modal = "connect" | "join" | "new" | "invite" | "help" | "settings" | "inspect" | "delete" | "security" | "proposals" | "bot" | "clients" | "tools" | null;
 type Timeline = { events: ChatEvent[]; etag?: string; head?: string | null; older?: string | null; fetched?: boolean };
 const SOUND_KEY = "gitmsg:sound";
 
@@ -58,6 +61,7 @@ function richText(text: string) {
 }
 
 export function Messenger() {
+  const reduceMotion = useReducedMotion();
   const [room, setRoom] = useState<Room>(DEMO_ROOMS[0]);
   const [rooms, setRooms] = useState<Room[]>(DEMO_ROOMS);
   const [timelines, setTimelines] = useState<Record<string, Timeline>>({});
@@ -106,7 +110,6 @@ export function Messenger() {
   const timeline = timelines[room.id] || { events: [] };
   const messages = useMemo(() => materialize(timeline.events), [timeline.events]);
   const filtered = useMemo(() => search ? messages.filter(m => `${m.text} ${m.actor.login}`.toLowerCase().includes(search.toLowerCase())) : messages, [messages, search]);
-  const snapshots = useMemo(() => messages.filter(m => !m.deleted && !m.locked && m.attachments?.some(a => a.mime === "application/vnd.excalidraw+json")), [messages]);
   const canSend = security.loaded && (!security.enabled || security.hasKey) && (room.demo || !!session?.user);
   const notify = useCallback((value: string) => setToast(value), []);
   const log = useCallback((value: string) => setLogs(old => [...old.slice(-35), value]), []);
@@ -231,8 +234,8 @@ export function Messenger() {
   }, []);
   useEffect(() => {
     const node = feed.current;
-    if (node && node.scrollHeight - node.scrollTop - node.clientHeight < 350) bottom.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  }, [messages.length, botTyping]);
+    if (node && node.scrollHeight - node.scrollTop - node.clientHeight < 350) bottom.current?.scrollIntoView({ behavior: reduceMotion ? "instant" : "smooth", block: "end" });
+  }, [messages.length, botTyping, reduceMotion]);
   useEffect(() => {
     setText(readLocal<string>(`gitmsg:draft:${room.id}`, "")); setReplyTo(null); setEditing(null); setSearch(""); setError(""); setSyncError(""); retryEvent.current = null;
     later(() => bottom.current?.scrollIntoView({ block: "end" }), 80);
@@ -241,7 +244,6 @@ export function Messenger() {
     let sequence = "";
     const keydown = (event: globalThis.KeyboardEvent) => {
       if (event.key === "Escape") { setModal(null); setSearchOpen(false); setReactionPicker(null); setEmojiPicker(false); setSidebar(false); }
-      if ((event.metaKey || event.ctrlKey) && event.key === "k") { event.preventDefault(); setSearchOpen(v => !v); }
       if ((event.metaKey || event.ctrlKey) && event.key === "j") { event.preventDefault(); setTerminal(v => !v); }
       if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return;
       sequence = `${sequence} ${event.key}`.slice(-120);
@@ -375,7 +377,7 @@ export function Messenger() {
       setText(current => { if (current === submittedText || (submittedText.trim() === "/shrug" && current === "¯\\_(ツ)_/¯")) { writeLocal(`gitmsg:draft:${active.id}`, ""); return ""; } return current; });
       setReplyTo(null); setEditing(null);
       if (sound) ping();
-      later(() => bottom.current?.scrollIntoView({ behavior: "smooth" }), 50);
+      later(() => bottom.current?.scrollIntoView({ behavior: reduceMotion ? "instant" : "smooth" }), 50);
       if (active.demo && pending.kind === "message") {
         setTypingRoom(active.id);
         later(() => {
@@ -394,8 +396,8 @@ export function Messenger() {
     const policy = securityRef.current;
     try {
       const attachment = await uploadMedia(active, file, name, policy.enabled, duration);
-      await submitEvent(makeEvent("message", { text: file.type === "application/vnd.excalidraw+json" ? "Whiteboard snapshot" : "", attachments: [attachment] }), active, policy);
-      notify(file.type === "application/vnd.excalidraw+json" ? "Board snapshot committed." : "Attachment committed.");
+      await submitEvent(makeEvent("message", { text: "", attachments: [attachment] }), active, policy);
+      notify("Attachment committed.");
     } finally { sendingRef.current = false; setSending(false); }
   }
   async function propose() {
@@ -470,10 +472,11 @@ export function Messenger() {
     <main className="main"><Frame className="workspace-frame"><FramePanel className="chat-workspace">
     {sidebar && <button className="sidebar-scrim" aria-label="Close navigation" onClick={() => setSidebar(false)} />}
     <aside className={`sidebar ${sidebar ? "open" : ""}`}>
-      <div className="sidebar-top"><span>Chats</span><Button variant="ghost" size="icon-sm" title="New chat" aria-label="New chat" onClick={() => setModal("new")}><Plus /></Button><Button variant="ghost" size="icon-sm" className="close-navigation" aria-label="Close navigation" onClick={() => setSidebar(false)}><X /></Button></div>
-      <Button variant="outline" className="sidebar-search" onClick={() => { setSearchOpen(true); setSidebar(false); }}><Search />Search<kbd>⌘ K</kbd></Button>
+      <div className="sidebar-top"><span>Workspace<small>Your corner of GitHub</small></span><Button variant="ghost" size="icon-sm" title="New chat" aria-label="New chat" onClick={() => setModal("new")}><Plus /></Button><Button variant="ghost" size="icon-sm" className="close-navigation" aria-label="Close navigation" onClick={() => setSidebar(false)}><X /></Button></div>
+      <CommandButton className="sidebar-search" disabled={modal !== null} onClick={() => { setSearchOpen(v => !v); setSidebar(false); }}><Search size={15} /><span>Search messages</span></CommandButton>
       <Button variant="ghost" className="saved-room-link" onClick={() => void openSaved()}><Bookmark />Saved Messages</Button>
-      <nav className="rooms" aria-label="Chats">{rooms.map(r => <Button key={r.id} variant={room.id === r.id ? "secondary" : "ghost"} onClick={() => selectRoom(r)} aria-current={room.id === r.id ? "page" : undefined} className="room"><Hash /><span>{r.name}</span>{!r.demo && <LockKeyhole />}</Button>)}</nav>
+      <div className="sidebar-label">Conversations<span>{rooms.length}</span></div>
+      <nav className="rooms" aria-label="Chats">{rooms.map(r => <Button key={r.id} variant="ghost" onClick={() => selectRoom(r)} aria-current={room.id === r.id ? "page" : undefined} className="room">{room.id === r.id && <motion.span className="room-indicator" layoutId="active-conversation" transition={{ type: "spring", stiffness: 420, damping: 38 }} />}<Hash /><span className="room-name">{r.name}</span>{!r.demo && <LockKeyhole />}</Button>)}</nav>
       <div className="sidebar-spacer" />
       <div className="sidebar-bottom"><Button variant="ghost" size="icon-sm" aria-label="Help" title="Help" onClick={() => setModal("help")}><CircleHelp /></Button><Button variant="ghost" size="icon-sm" aria-label="Settings" title="Settings" onClick={() => setModal("settings")}><Settings2 /></Button></div>
     </aside>
@@ -486,21 +489,21 @@ export function Messenger() {
         <div className="message-feed" ref={feed}>
           <div className="date-divider">{room.demo ? "Today" : "Messages"}</div>
           {timeline.older && !search && <Button variant="ghost" size="sm" className="load-history" loading={syncing} onClick={() => void sync(true)}>Load earlier messages</Button>}
-          {!room.demo && syncing && !messages.length && <div className="empty-state"><LoaderCircle className="spin" size={20} />Loading messages…</div>}
+          {!room.demo && syncing && !messages.length && <Loader className="history-loader" size="sm" title="Loading messages…" subtitle="Reading your Git history" />}
           {!syncing && !messages.length && <div className="empty-state"><MessageSquare size={24} />No messages yet</div>}
           {search && !filtered.length && <div className="empty-state"><Search size={25} />No messages found</div>}
-          <div className="messages" role="log" aria-label="Messages" aria-live="polite" aria-relevant="additions text">{filtered.map((message, index) => {
+          <div className="messages" key={room.id} role="log" aria-label="Messages" aria-live="polite" aria-relevant="additions text">{filtered.map((message, index) => {
             const previous = filtered[index - 1]; const grouped = previous?.actor.id === message.actor.id && new Date(message.createdAt).getTime() - new Date(previous.createdAt).getTime() < 300000;
             const mine = message.actor.id === actor.id;
             const replied = message.replyTo ? messages.find(m => m.id === message.replyTo) : null;
-            return <article className={`message ${grouped ? "grouped" : ""} ${mine ? "mine" : ""} ${message.deleted ? "deleted" : ""}`} key={message.id} id={`message-${message.id}`}>
+            return <motion.article initial={index >= filtered.length - 12 ? { opacity: 0, y: 6 } : false} animate={{ opacity: 1, y: 0 }} transition={{ duration: .22, ease: [.23, 1, .32, 1] }} className={`message ${grouped ? "grouped" : ""} ${mine ? "mine" : ""} ${message.deleted ? "deleted" : ""}`} key={message.id} id={`message-${message.id}`}>
               <div className="message-avatar">{!grouped && <Avatar actor={message.actor} />}</div>
               <div className="message-content">
                 {!grouped && <div className="message-meta"><b>{message.actor.login}</b>{message.actor.login === "dependabot" && <span className="bot-label">Bot</span>}<time dateTime={message.createdAt}>{time(message.createdAt)}</time></div>}
-                {replied && <Button variant="ghost" size="xs" className="reply-preview" onClick={() => document.getElementById(`message-${replied.id}`)?.scrollIntoView({ behavior: "smooth", block: "center" })}><Reply /><b>{replied.actor.login}</b><span>{replied.text.slice(0, 100)}</span></Button>}
+                {replied && <Button variant="ghost" size="xs" className="reply-preview" onClick={() => document.getElementById(`message-${replied.id}`)?.scrollIntoView({ behavior: reduceMotion ? "instant" : "smooth", block: "center" })}><Reply /><b>{replied.actor.login}</b><span>{replied.text.slice(0, 100)}</span></Button>}
                 <div className="message-text">{richText(message.text)}{message.edited && <span className="edited-label">edited</span>}</div>
                 {message.locked && <Button size="xs" variant="outline" onClick={() => setModal("security")}><LockKeyhole />Import room key</Button>}
-                {message.attachments?.map(attachment => <MediaMessage key={attachment.id} room={room} attachment={attachment} onBoard={() => setModal("board")} />)}
+                {message.attachments?.map(attachment => <MediaMessage key={attachment.id} room={room} attachment={attachment} />)}
                 {message.savedFrom && <span className="saved-source"><Bookmark size={11} />Saved from {message.savedFrom.repo}</span>}
                 {message.bot?.command === "roll" && Number.isInteger(message.bot.value) && message.bot.value! >= 1 && message.bot.value! <= 6 && <div className="dice-result" role="img" aria-label={`Die result: ${message.bot.value}`}>{["⚀", "⚁", "⚂", "⚃", "⚄", "⚅"][message.bot.value! - 1]}</div>}
                 {Object.entries(message.reactions).some(([, users]) => users.length) && <div className="reactions">{Object.entries(message.reactions).filter(([, users]) => users.length).map(([emoji, users]) => <Button key={emoji} variant={users.some(u => u.id === actor.id) ? "secondary" : "outline"} size="xs" aria-pressed={users.some(u => u.id === actor.id)} title={users.map(u => u.login).join(", ")} onClick={() => void react(message, emoji as Reaction)}>{emoji}<span>{users.length}</span></Button>)}</div>}
@@ -514,7 +517,7 @@ export function Messenger() {
                 {mine && !message.locked && <><Button variant="ghost" size="icon-xs" aria-label="Edit message" title="Edit" disabled={!message.text.trim()} onClick={() => { setEditing(message); setReplyTo(null); setText(message.text); composer.current?.focus(); }}><Pencil /></Button><Button variant="ghost" size="icon-xs" aria-label="Delete message" title="Delete" onClick={() => { setSelected(message); setModal("delete"); }}><Trash2 /></Button></>}
               </div>}
               {reactionPicker === message.id && <div className="reaction-picker">{REACTIONS.map(emoji => <Button variant="ghost" size="icon-sm" key={emoji} onClick={() => void react(message, emoji)} aria-label={`React ${emoji}`}>{emoji}</Button>)}<Button variant="ghost" size="icon-sm" aria-label="Close reactions" onClick={() => setReactionPicker(null)}><X /></Button></div>}
-            </article>;
+            </motion.article>;
           })}</div>
           {botTyping && room.demo && <div className="typing">Typing…</div>}
           <div ref={bottom} className="scroll-anchor" />
@@ -525,7 +528,7 @@ export function Messenger() {
           {currentReply && <div className="composing-context">{editing ? <Pencil size={13} /> : <Reply size={13} />}<span>{editing ? "Editing your message" : `Replying to ${replyTo!.actor.login}`}<small>{currentReply.text.slice(0, 80)}</small></span><Button variant="ghost" size="icon-xs" aria-label="Cancel reply or edit" onClick={() => { if (editing) setText(""); setEditing(null); setReplyTo(null); }}><X /></Button></div>}
           <form className="composer" onSubmit={send}>
             <Textarea ref={composer} aria-label="Message" placeholder={security.enabled && !security.hasKey ? "Import the room key to unlock…" : editing ? "Edit message…" : `Message #${room.name}`} rows={2} maxLength={MAX_TEXT} value={text} onChange={e => { setText(e.target.value); if (security.loaded && !security.enabled) writeLocal(`gitmsg:draft:${room.id}`, e.target.value); }} onKeyDown={(e: KeyboardEvent<HTMLTextAreaElement>) => { if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); void send(); } if (e.key === "ArrowUp" && !text) { const last = [...messages].reverse().find(m => m.actor.id === actor.id && !m.deleted && !m.locked && m.text.trim()); if (last) { setEditing(last); setText(last.text); } } }} />
-            <div className="composer-toolbar"><div><MediaComposer key={room.id} disabled={!canSend || sending || cooldown > 0} onSend={sendMedia} onError={onError} /><Button variant="ghost" size="icon-sm" title="Whiteboard" aria-label="Open whiteboard" onClick={() => setModal("board")}><PencilRuler /></Button><Button variant="ghost" size="icon-sm" title="Add emoji" aria-label="Add emoji" onClick={() => setEmojiPicker(v => !v)}><Smile /></Button></div><div>{text.length > 3500 && <span className="character-count">{text.length}/{MAX_TEXT}</span>}{!editing && !room.demo && <Button size="icon-sm" variant="ghost" title="Propose as a real pull request" aria-label="Propose message as pull request" disabled={!text.trim() || !canSend || sending || cooldown > 0} onClick={() => void propose()}><GitPullRequest /></Button>}<Button size="sm" type="submit" loading={sending} disabled={!text.trim() || cooldown > 0 || !canSend} aria-label={editing ? "Save edit" : "Send message"}>{editing ? "Save" : "Send"}<ArrowUpRight /></Button></div></div>
+            <div className="composer-toolbar"><div><MediaComposer key={room.id} disabled={!canSend || sending || cooldown > 0} onSend={sendMedia} onError={onError} /><span className="toolbar-divider" aria-hidden="true" /><Button variant="ghost" size="icon-sm" title="Add emoji" aria-label="Add emoji" onClick={() => setEmojiPicker(v => !v)}><Smile /></Button></div><div>{text.length > 3500 && <span className="character-count">{text.length}/{MAX_TEXT}</span>}{!editing && !room.demo && <Button size="icon-sm" variant="ghost" title="Propose as a real pull request" aria-label="Propose message as pull request" disabled={!text.trim() || !canSend || sending || cooldown > 0} onClick={() => void propose()}><GitPullRequest /></Button>}<ParticleButton className="send-button" size="sm" type="submit" status={sending ? "pending" : "idle"} pendingLabel="Committing" particles={false} disabled={sending || !text.trim() || cooldown > 0 || !canSend} aria-label={editing ? "Save edit" : "Send message"} icon={<ArrowUpRight />}>{editing ? "Save" : "Send"}</ParticleButton></div></div>
             {emojiPicker && <div className="composer-emoji">{[...REACTIONS, "👋", "🤝", "🫡", "✨", "☕"].map(emoji => <Button variant="ghost" size="icon-sm" key={emoji} aria-label={`Insert ${emoji}`} onClick={() => { setText(t => t + emoji); setEmojiPicker(false); composer.current?.focus(); }}>{emoji}</Button>)}</div>}
           </form>
           <div className="composer-footer">{room.demo ? "Local demo · simulated replies" : security.enabled ? "Browser-encrypted · keys stay on your devices" : "Stored on GitHub · standard mode is not encrypted"}<span>Shift ↵ for a new line</span></div>
@@ -539,10 +542,9 @@ export function Messenger() {
     </FramePanel></Frame></main>
 
     {toast && <div className="toast" role="status"><Check size={14} /><span>{toast}</span><Button variant="ghost" size="icon-xs" aria-label="Dismiss notification" onClick={() => setToast("")}><X /></Button></div>}
-    <Dialog open={modal !== null} onOpenChange={open => { if (!open) setModal(null); }}><DialogContent className={`modal ${modal === "board" ? "board-modal" : modal === "help" ? "wide" : ""}`} aria-describedby="dialog-description"><DialogTitle className="sr-only">{modal === "connect" ? "Sign in with GitHub" : modal === "join" ? "Join chat" : modal === "new" ? "New conversation" : modal === "invite" ? "Invite a collaborator" : modal === "help" ? "README and keyboard shortcuts" : modal === "inspect" ? "Inspect commit" : modal === "delete" ? "Hide message" : modal === "board" ? "Whiteboard" : modal === "security" ? "Room security" : modal === "proposals" ? "Message proposals" : modal === "bot" ? "GitHub Actions participant" : modal === "clients" ? "Other chat clients" : modal === "tools" ? "Chat tools" : "Preferences"}</DialogTitle><DialogDescription id="dialog-description" className="sr-only">{modal === "connect" ? "Authorize GitHub to create and access your chat repositories." : "Manage your gitmsg conversation."}</DialogDescription>
-      {modal === "tools" && <><h2>Chat tools</h2><div className="tool-list"><Button variant="ghost" onClick={() => setModal("board")}><PencilRuler /><span>Whiteboard<small>Excalidraw snapshots, real Git history</small></span></Button><Button variant="ghost" onClick={() => setModal("security")}><ShieldCheck /><span>Secure conversation<small>Browser encryption and secret key QR</small></span></Button><Button variant="ghost" onClick={() => setModal("proposals")}><GitPullRequest /><span>Message proposals<small>Review and merge real pull requests</small></span></Button><Button variant="ghost" onClick={() => setModal("bot")}><Bot /><span>Actions participant<small>Dice, standup, configured deploys</small></span></Button><Button variant="ghost" onClick={() => setModal("clients")}><Terminal /><span>Terminal / GitHub<small>Same protocol, same conversation</small></span></Button><Button variant="ghost" onClick={() => void openSaved()}><Bookmark /><span>Saved Messages<small>Your own private Git repository</small></span></Button></div>{!room.demo && <Button variant="link" render={<a href={repoUrl} target="_blank" rel="noreferrer" />}><Github />Open repository</Button>}</>}
+    <Dialog open={modal !== null} onOpenChange={open => { if (!open) setModal(null); }}><DialogContent className={`modal ${modal === "help" ? "wide" : ""}`} aria-describedby="dialog-description"><DialogTitle className="sr-only">{modal === "connect" ? "Sign in with GitHub" : modal === "join" ? "Join chat" : modal === "new" ? "New conversation" : modal === "invite" ? "Invite a collaborator" : modal === "help" ? "README and keyboard shortcuts" : modal === "inspect" ? "Inspect commit" : modal === "delete" ? "Hide message" : modal === "security" ? "Room security" : modal === "proposals" ? "Message proposals" : modal === "bot" ? "GitHub Actions participant" : modal === "clients" ? "Other chat clients" : modal === "tools" ? "Chat tools" : "Preferences"}</DialogTitle><DialogDescription id="dialog-description" className="sr-only">{modal === "connect" ? "Authorize GitHub to create and access your chat repositories." : "Manage your gitmsg conversation."}</DialogDescription>
+      {modal === "tools" && <><h2>Chat tools</h2><div className="tool-list"><Button variant="ghost" onClick={() => setModal("security")}><ShieldCheck /><span>Secure conversation<small>Browser encryption and secret key QR</small></span></Button><Button variant="ghost" onClick={() => setModal("proposals")}><GitPullRequest /><span>Message proposals<small>Review and merge real pull requests</small></span></Button><Button variant="ghost" onClick={() => setModal("bot")}><Bot /><span>Actions participant<small>Dice, standup, configured deploys</small></span></Button><Button variant="ghost" onClick={() => setModal("clients")}><Terminal /><span>Terminal / GitHub<small>Same protocol, same conversation</small></span></Button><Button variant="ghost" onClick={() => void openSaved()}><Bookmark /><span>Saved Messages<small>Your own private Git repository</small></span></Button></div>{!room.demo && <Button variant="link" render={<a href={repoUrl} target="_blank" rel="noreferrer" />}><Github />Open repository</Button>}</>}
       {modal === "security" && <RoomSecurity key={room.id} room={room} security={security} onChange={loadSecurity} />}
-      {modal === "board" && <Whiteboard key={room.id} room={room} snapshots={snapshots} disabled={!canSend || sending} onCommit={blob => sendMedia(blob, `board-${new Date().toISOString().slice(0, 10)}.excalidraw`)} />}
       {modal === "proposals" && <Proposals room={room} onMerged={() => { void sync(); notify("Pull request merged. Fetching the new message…"); }} />}
       {modal === "bot" && <BotPanel room={room} secure={security.enabled} />}
       {modal === "clients" && <OtherClients room={room} actor={actor} secure={security.enabled} />}
@@ -559,7 +561,7 @@ export function Messenger() {
         {room.demo && <Button variant="ghost" onClick={() => { updateTimeline(room.id, () => ({ events: demoEvents(room.id) })); setModal(null); notify("Demo reset."); }}><GitFork />Reset demo</Button>}
         {session?.user && <Button variant="ghost" onClick={() => void logout()}><LogOut />Sign out</Button>}
       </div></>}
-      {modal === "help" && <><h2>Help</h2><p>Each live chat is a GitHub repository. Messages, attachments, drawings and reactions are commits. Use the microphone to record, the image button to send a picture, and Chat tools for everything else.</p><dl className="shortcuts"><dt>Enter</dt><dd>Send message</dd><dt>Shift ↵</dt><dd>New line</dd><dt>⌘ / Ctrl K</dt><dd>Search messages</dd><dt>↑ in empty input</dt><dd>Edit last message</dd><dt>Esc</dt><dd>Close dialog</dd></dl><p className="fine-print">Secure mode encrypts future content in your browser. Standard mode is readable by GitHub. Old plaintext, metadata and Git history remain. Keys need backups; this is not audited high-assurance messaging. Only invite trusted collaborators. Free hosting and Actions have usage limits.</p></>}
+      {modal === "help" && <><h2>Help</h2><p>Each live chat is a GitHub repository. Messages, attachments and reactions are commits. Use the microphone to record, the image button to send a picture, and Chat tools for everything else.</p><dl className="shortcuts"><dt>Enter</dt><dd>Send message</dd><dt>Shift ↵</dt><dd>New line</dd><dt>⌘ / Ctrl K</dt><dd>Search messages</dd><dt>↑ in empty input</dt><dd>Edit last message</dd><dt>Esc</dt><dd>Close dialog</dd></dl><p className="fine-print">Secure mode encrypts future content in your browser. Standard mode is readable by GitHub. Old plaintext, metadata and Git history remain. Keys need backups; this is not audited high-assurance messaging. Only invite trusted collaborators. Free hosting and Actions have usage limits.</p></>}
     </DialogContent></Dialog>
   </div>;
 }
