@@ -3,6 +3,9 @@ import { body, failure, getSession, github, HttpError, json, sameOrigin, throttl
 import { parseCommit, validEvent, validRepo, type ChatEvent } from "@/lib/protocol";
 import { roomPolicy } from "@/lib/room-policy";
 import { storeEvent } from "@/lib/event-store";
+import { callableRoom } from "@/lib/call-protocol";
+import { roomIdentity } from "@/lib/room-store";
+import { repositoryRoom } from "@/lib/github-models";
 
 type Commit = { sha: string; html_url: string; commit: { message: string }; parents: { sha: string }[] };
 export const maxDuration = 60;
@@ -38,6 +41,12 @@ export async function POST(request: NextRequest) {
     if (!validEvent(event) || Math.abs(Date.now() - Date.parse(event.createdAt)) > 86400000) throw new HttpError(400, "Invalid event. Messages can contain up to 4,000 characters.");
     const policy = await roomPolicy(session, input.repo, input.branch);
     if (policy.enabled && (!event.sealed || event.sealed.keyId !== policy.keyId)) throw new HttpError(409, "Secure mode is enabled. Import the correct room key and retry; plaintext is not accepted.");
+    if (event.kind === "call") {
+      const repository = await (await github(session, `/repos/${input.repo}`)).json();
+      if (input.branch !== repository.default_branch) throw new HttpError(400, "Calls use the conversation's default branch.");
+      const room = await roomIdentity(session, repositoryRoom(repository));
+      if (!callableRoom(room, session.user) || (event.call && event.call.to !== room.peer!.id)) throw new HttpError(403, "Audio calls require a private direct conversation with a verified partner and write access.");
+    }
     // Do not allow client-provided URLs / SHAs to become protocol data.
     delete event.sha; delete event.url;
     return json({ event: await storeEvent(session, input.repo, input.branch, event) }, 201);

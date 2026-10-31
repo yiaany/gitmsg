@@ -35,13 +35,13 @@ export async function encryptEvent(key: CryptoKey, repo: string, branch: string,
   const { sha: _sha, url: _url, sealed: _sealed, locked: _locked, encrypted: _encrypted, ...plain } = event;
   if (!validEvent(plain)) throw new Error("Cannot encrypt an invalid event.");
   const encrypted = await encryptBytes(key, new TextEncoder().encode(JSON.stringify(plain)), context(repo, branch, event));
-  return { v: 1, id: event.id, kind: "message", actor: event.actor, createdAt: event.createdAt, sealed: { algorithm: "AES-256-GCM", iv: encrypted.iv, ciphertext: base64url(encrypted.bytes), keyId: await keyFingerprint(key) } };
+  return { v: 1, id: event.id, kind: event.kind === "call" ? "call" : "message", actor: event.actor, createdAt: event.createdAt, sealed: { algorithm: "AES-256-GCM", iv: encrypted.iv, ciphertext: base64url(encrypted.bytes), keyId: await keyFingerprint(key) } };
 }
 export async function decryptEvent(key: CryptoKey, repo: string, branch: string, event: ChatEvent): Promise<ChatEvent> {
   if (!event.sealed) return event;
   if (!validEvent(event) || await keyFingerprint(key) !== event.sealed.keyId) throw new Error("This event needs a different room key.");
   const plain = JSON.parse(new TextDecoder().decode(await decryptBytes(key, unbase64(event.sealed.ciphertext), event.sealed.iv, context(repo, branch, event)))) as ChatEvent;
-  if (!validEvent(plain) || plain.sealed || plain.id !== event.id || plain.actor.id !== event.actor.id || plain.createdAt !== event.createdAt) throw new Error("Encrypted event integrity check failed.");
+   if (!validEvent(plain) || plain.sealed || (plain.kind === "call") !== (event.kind === "call") || plain.id !== event.id || plain.actor.id !== event.actor.id || plain.createdAt !== event.createdAt) throw new Error("Encrypted event integrity check failed.");
   return { ...plain, actor: event.actor, sha: event.sha, url: event.url, sealed: undefined, locked: false, encrypted: true };
 }
 

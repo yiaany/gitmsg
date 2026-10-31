@@ -7,7 +7,7 @@ Open **Room security** (shield) in a live private room. Only repository administ
 - Web Crypto generates a random 256-bit AES key. No password, room name, commit SHA or hash is used as a secret key.
 - Each encryption uses a fresh random 96-bit IV and a 128-bit AES-GCM authentication tag, appended to the ciphertext. Base64url encodes binary fields without padding.
 - Event additional authenticated data is UTF-8 JSON of `["gitmsg:event:v1", lowercaseRepo, baseBranch, eventId, actorId, createdAt]`. The complete inner event, including mutation kind/target, text, replies, attachment metadata and saved-source fields, is encrypted.
-- The outer event is always `kind: "message"`; `sealed` contains `algorithm`, `iv`, `ciphertext`, and the SHA-256 digest of the raw key as `keyId`. Actor, date and ID remain public. PR envelopes bind to their destination/base branch, so decrypt after a merge commit into that branch.
+- The outer event is `kind: "message"`, except audio signaling uses `kind: "call"` so locked call envelopes never become message bubbles or unread counts. The call kind is visible metadata. `sealed` contains `algorithm`, `iv`, `ciphertext`, and the SHA-256 digest of the raw key as `keyId`. Actor, date and ID remain public. PR envelopes bind to their destination/base branch, so decrypt after a merge commit into that branch.
 - Media AAD is `gitmsg:media:<lowercaseRepo>:<attachmentId>`. The encrypted bytes go to `media/<id>.bin`; IV and SHA-256 digest of stored bytes are inside the encrypted event. Verification happens before decryption/rendering.
 - `gitmsg/security.json` contains only public policy and fingerprint. App writes reject plaintext after enablement. An `encrypted` media flag is a declaration, not server verification of AES output; the server has no key. Trusted clients must actually encrypt.
 
@@ -20,6 +20,14 @@ Secret invitations carry `#key=...` in the URL fragment, never a query parameter
 There is no password reset, escrow, key rotation UI or key recovery server. Clearing site data can permanently lose access. Saved Messages has a **separate key**; open its security panel and back it up too. Saving from a secure room automatically enables destination encryption if needed, but does not retroactively encrypt its earlier saves.
 
 ## Honest boundaries
+
+Audio calls use WebRTC's encrypted direct media transport. Standard call signaling
+(including SDP, ICE credentials and potential IP addresses) is readable by GitHub
+and repo readers and remains in history. In secure rooms it is encrypted with the
+room key. Public STUN servers and the other caller still see network addresses.
+Signaling inherits the same collaborator/website trust model below; it is not
+independently authenticated end-to-end identity verification. No call recording
+or media upload is performed by gitmsg. See [CALLS.md](CALLS.md).
 
 GitHub/Microsoft and the app server receive ciphertext for correctly encrypted new content, but see repo membership, authors, timestamps, commit counts, approximate sizes and public fingerprints. Old plaintext stays in all Git history and clones. Shared-key holders can read and forge content; actors are not signed identities. Removing a member does not revoke their key or old history. Create a new room/key to exclude a former member from future content.
 

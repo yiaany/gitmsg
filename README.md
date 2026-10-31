@@ -35,6 +35,7 @@ Bring your GitHub account. Invite a friend. Talk about something stupid.
 | Replies, edits, reactions and Saved Messages | Every action is an append-only Git event |
 | Photos with a preview, caption and full-size viewer | Media is a real Git blob, verified before display |
 | Voice notes with waveforms and pause/resume | Record, listen, send. No fake audio bars |
+| One-to-one audio calls | Git batches signaling; WebRTC carries audio directly, with no TURN relay |
 | Search, pins, unread badges and keyboard shortcuts | Previews sync from actual commits; unread IDs stay local |
 | Profile photo, display name, bio and a music link | GitHub is your identity; publishing a profile is explicit |
 | Optional browser encryption | Your keys stay on your devices, not in the repo |
@@ -77,6 +78,19 @@ set their laptop clock to 2099. Encryption seals event content and media before 
 
 No persistent message database. No separate realtime subscription. No claim that
 GitHub somehow became a free, infinitely scalable chat backend.
+
+### Yes, it can make a phone call
+
+Open a private direct conversation → phone button → accept on the other side.
+The browser collects ICE parameters for 2.5 seconds, then commits one offer or
+answer, not one commit per candidate. Audio is direct WebRTC, encrypted in transit,
+never committed or relayed through our server. No paid calling service or TURN.
+
+**Best effort, not every network.** Provider NAT/firewalls can prevent a direct
+connection. Both people need an open, online gitmsg tab; polling is not push.
+Standard signaling can expose IP addresses in permanent Git history. Room Security
+encrypts signaling; public STUN services still learn network addresses.
+[Call behavior, protocol and verification →](docs/CALLS.md)
 
 ### What gets created — and when
 

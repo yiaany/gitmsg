@@ -6,6 +6,7 @@ Working software first. Everything below is a direction, not a shipped feature.
 
 - Verify the complete invitation and encrypted media flow with two real GitHub accounts.
 - Exercise Safari/Firefox recording and actual mobile keyboards, safe areas and touch.
+- Verify direct audio calls with real GitHub accounts, physical microphones and restrictive/mobile networks; no TURN connectivity guarantee.
 - Add repeatable browser end-to-end tests and an opt-in two-account smoke test.
 - Review retry/outbox behavior, abuse controls and hosting budgets under real traffic.
 - Commission an independent security review before making stronger privacy claims.

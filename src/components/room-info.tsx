@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { ArrowLeft, Bell, ExternalLink, Info, LogOut, ShieldCheck, UserRound, X } from "lucide-react";
+import { ArrowLeft, Bell, ExternalLink, Info, LogOut, Phone, ShieldCheck, UserRound, X } from "lucide-react";
 import type { Message, Room } from "@/lib/protocol";
 import { sharedContent } from "@/lib/shared-content";
 import { ConversationAvatar } from "./conversation-list";
@@ -11,9 +11,10 @@ import { MediaMessage } from "./media-message";
 import { Button } from "./ui/button";
 
 const TABS = ["Media", "Files", "Links"] as const;
-export function RoomInfo({ room, messages, encrypted, subscribed, muted, busy, onClose, onSecurity, onLeave, onToggleMute }: {
+export function RoomInfo({ room, messages, encrypted, subscribed, muted, busy, onClose, onSecurity, onLeave, onToggleMute, onProfile, onCall }: {
   room: Room; messages: Message[]; encrypted: boolean; subscribed: boolean; muted: boolean; busy: boolean;
   onClose: () => void; onSecurity: () => void; onLeave: () => void; onToggleMute: () => void;
+  onProfile?: () => void; onCall?: () => void;
 }) {
   const [tab, setTab] = useState<typeof TABS[number]>("Media");
   const [direction, setDirection] = useState(1);
@@ -36,6 +37,8 @@ export function RoomInfo({ room, messages, encrypted, subscribed, muted, busy, o
     <header><Button ref={close} variant="ghost" size="icon-lg" className="round-button" aria-label={shared ? "Back to profile" : "Close chat info"} onClick={() => { if (shared) { setShared(false); scroll.current?.scrollTo({ top: 0, behavior: reduceMotion ? "instant" : "smooth" }); } else onClose(); }}>{shared ? <ArrowLeft /> : <><X className="info-close-desktop" /><ArrowLeft className="info-close-mobile" /></>}</Button><h2>{shared ? "Shared Media" : title}</h2></header>
     <div className="room-info-scroll" ref={scroll}><div className="room-info-hero"><ConversationAvatar room={room} /><div className="room-info-name"><h3>{room.name}</h3><p>{room.peer ? `@${room.peer.login}` : room.kind === "channel" ? "public channel" : "GitHub conversation"}</p></div></div>
       <div className="room-info-details">
+        {onProfile && <Button variant="ghost" className="info-row" onClick={onProfile}><UserRound /><span>View profile<small>Published name, bio, photo and music</small></span></Button>}
+        {onCall && <Button variant="ghost" className="info-row" onClick={onCall}><Phone /><span>Call</span></Button>}
         {room.description && <div className="info-row"><Info /><span>{room.description}<small>{room.peer ? "Bio" : "Description"}</small></span></div>}
         {room.peer && <a className="info-row" href={`https://github.com/${room.peer.login}`} target="_blank" rel="noreferrer"><UserRound /><span>@{room.peer.login}<small>Username · GitHub</small></span></a>}
         <Button variant="ghost" className="info-row" role="switch" aria-checked={!muted} aria-label="Conversation notifications" onClick={onToggleMute}><Bell /><span>Notifications</span><i className={`appearance-switch ${!muted ? "on" : ""}`} aria-hidden="true" /></Button>

@@ -14,6 +14,12 @@ The whiteboard editor has been removed. Historical `application/vnd.excalidraw+j
 
 Secure envelopes and AAD: [ENCRYPTION.md](ENCRYPTION.md). Plaintext read clients cannot materialize encrypted mutation kinds. Never send a key to GitHub or Actions.
 
+`kind: "call"` is bounded audio signaling, never a message/mutation or unread item.
+Its `call` object holds `{id,to,phase,expiresAt,sdp?,reason?}`. Offer/answer SDP is
+ASCII, at most 14,000 characters, exactly one audio media section. End has no SDP
+and a bounded reason. Secure calls keep the outer call kind but seal all parameters.
+Freshness is checked at consumption, not historical parsing. See [CALLS.md](CALLS.md).
+
 ## Three clients
 
 - **Website:** room → Chat tools → Terminal / GitHub offers the downloadable Node 22 CLI and a GitHub-editor event generator.

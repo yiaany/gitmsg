@@ -1,3 +1,5 @@
+import { validCallSignal, type CallSignal } from "./call-protocol";
+
 export const EVENT_PREFIX = "gitmsg:event:v1\n";
 export const MAX_TEXT = 4000;
 export const REACTIONS = ["🚀", "❤️", "😂", "👀", "🔥", "👍"] as const;
@@ -10,7 +12,8 @@ export type SealedContent = { algorithm: "AES-256-GCM"; iv: string; ciphertext: 
 export type ChatEvent = {
   v: 1;
   id: string;
-  kind: "message" | "edit" | "delete" | "reaction";
+  kind: "message" | "edit" | "delete" | "reaction" | "call";
+  call?: CallSignal;
   actor: Actor;
   createdAt: string;
   text?: string;
@@ -59,7 +62,9 @@ export function validEvent(value: unknown): value is ChatEvent {
   if (!value || typeof value !== "object") return false;
   const e = value as ChatEvent;
   if (e.v !== 1 || typeof e.id !== "string" || !/^[a-zA-Z0-9_-]{8,80}$/.test(e.id) || !e.actor || !Number.isSafeInteger(e.actor.id) || e.actor.id < 1 || typeof e.actor.login !== "string" || !/^[a-zA-Z0-9-]{1,39}$/.test(e.actor.login) || typeof e.createdAt !== "string" || !/^\d{4}-\d{2}-\d{2}T/.test(e.createdAt) || !Number.isFinite(Date.parse(e.createdAt))) return false;
-  if (e.sealed) return e.kind === "message" && e.text === undefined && e.attachments === undefined && e.target === undefined && e.replyTo === undefined && e.bot === undefined && e.savedFrom === undefined && e.sealed.algorithm === "AES-256-GCM" && /^[A-Za-z0-9_-]{16}$/.test(e.sealed.iv) && /^[a-f0-9]{64}$/.test(e.sealed.keyId) && typeof e.sealed.ciphertext === "string" && /^[A-Za-z0-9_-]{20,32000}$/.test(e.sealed.ciphertext);
+  if (e.sealed) return ["message", "call"].includes(e.kind) && e.call === undefined && e.text === undefined && e.attachments === undefined && e.target === undefined && e.replyTo === undefined && e.bot === undefined && e.savedFrom === undefined && e.sealed.algorithm === "AES-256-GCM" && /^[A-Za-z0-9_-]{16}$/.test(e.sealed.iv) && /^[a-f0-9]{64}$/.test(e.sealed.keyId) && typeof e.sealed.ciphertext === "string" && /^[A-Za-z0-9_-]{20,32000}$/.test(e.sealed.ciphertext);
+  if (e.kind === "call") return validCallSignal(e.call) && e.call.to !== e.actor.id && e.text === undefined && e.target === undefined && e.attachments === undefined && e.replyTo === undefined && e.bot === undefined && e.savedFrom === undefined;
+  if (e.call !== undefined) return false;
   if (e.attachments !== undefined && (!Array.isArray(e.attachments) || e.attachments.length > 4 || !e.attachments.every(validAttachment))) return false;
   if (e.savedFrom !== undefined && (!e.savedFrom || typeof e.savedFrom.repo !== "string" || !validRepo(e.savedFrom.repo) || typeof e.savedFrom.id !== "string" || !/^[a-zA-Z0-9_-]{8,80}$/.test(e.savedFrom.id) || (e.savedFrom.sha !== undefined && !/^[a-f0-9]{7,40}$/.test(e.savedFrom.sha)))) return false;
   if (e.bot !== undefined && (!e.bot || !["roll", "standup"].includes(e.bot.command) || (e.bot.command === "roll" && (!Number.isInteger(e.bot.value) || e.bot.value! < 1 || e.bot.value! > 6)))) return false;
@@ -103,7 +108,7 @@ export function materialize(events: ChatEvent[]): Message[] {
   for (const e of events) {
     if (unique.has(e.id)) continue;
     unique.add(e.id);
-    if (e.kind === "message") continue;
+    if (e.kind === "message" || e.kind === "call") continue;
     const m = messages.get(e.target!);
     if (!m) continue;
     if (e.kind === "edit" && m.actor.id === e.actor.id && !m.deleted) { m.text = e.text!; m.edited = true; }
@@ -136,5 +141,5 @@ export function reconcileEvents(existing: ChatEvent[], incoming: ChatEvent[]): C
 
 export function commitSubject(event: ChatEvent): string {
   if (event.sealed) return "feat(chat): encrypted event";
-  return ({ message: "feat(chat): ship a thought", edit: "fix(chat): rewrite that thought", delete: "revert(chat): plausible deniability", reaction: "chore(chat): emotional support emoji" })[event.kind];
+  return ({ message: "feat(chat): ship a thought", edit: "fix(chat): rewrite that thought", delete: "revert(chat): plausible deniability", reaction: "chore(chat): emotional support emoji", call: "feat(call): audio signaling" })[event.kind];
 }
