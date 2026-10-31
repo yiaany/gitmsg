@@ -1,6 +1,4 @@
-<p align="center">
-  <img src="docs/assets/cover.svg" alt="gitmsg — your messages, committed." width="100%" />
-</p>
+# gitmsg
 
 <p align="center">
   <a href="https://www.gitmsg.fun/">Open gitmsg</a> ·
