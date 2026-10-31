@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import qrcode from "qrcode-generator";
 import { Check, Copy, Download, KeyRound, LockKeyhole, QrCode, ShieldCheck } from "lucide-react";
-import { api, readLocal, writeLocal } from "@/lib/client";
+import { api } from "@/lib/client";
 import { exportKey, generateKey, importKey, keyFingerprint, roomKey, storeRoomKey } from "@/lib/room-crypto";
 import type { Room } from "@/lib/protocol";
 import { Button } from "./ui/button";
@@ -15,8 +15,7 @@ export function RoomSecurity({ room, security, onChange }: { room: Room; securit
     setBusy(true); setError("");
     try {
       const key = await roomKey(room.id) || await generateKey(); await storeRoomKey(room.id, key); const keyId = await keyFingerprint(key);
-      if (room.demo) writeLocal(`gitmsg:security:${room.id}`, { enabled: true, keyId });
-      else await api("/api/security", { method: "POST", body: JSON.stringify({ repo: room.id, branch: room.branch, keyId }) });
+      await api("/api/security", { method: "POST", body: JSON.stringify({ repo: room.id, branch: room.branch, keyId }) });
       setFingerprint(keyId); await onChange(); await reveal();
     } catch (e) { setError((e as Error).message); } finally { setBusy(false); }
   }
@@ -38,8 +37,8 @@ export function RoomSecurity({ room, security, onChange }: { room: Room; securit
   return <><h2><ShieldCheck size={22} /> Secure conversation</h2><p>Messages and attachments are encrypted in your browser with AES-256-GCM. GitHub receives ciphertext, not the key.</p>
     <div className="security-status"><LockKeyhole /><span>{security.enabled ? security.hasKey ? "Secure mode · key on this device" : "Secure mode · key required" : "Standard mode · GitHub can read content"}</span></div>
     <p className="fine-print">This protects future content, not old commits. Authors, timing, sizes and repository membership remain visible. No forward secrecy, identity signatures or independent security audit. Trust the website and everyone with the key.</p>
-    {room.demo && <p className="fine-print">Open a live private chat to enable enforced encryption. Demo messages stay in this browser.</p>}
-    {!security.enabled && <><label className="check-label"><input type="checkbox" checked={acknowledged} onChange={e => setAcknowledged(e.target.checked)} />I understand: losing the key loses access; old plaintext stays in Git history. I will back up the key and verify its fingerprint with my friend.</label><Button role="switch" aria-checked={false} disabled={room.demo || !acknowledged || busy || !security.loaded} loading={busy} onClick={() => void enable()}><LockKeyhole />Enable secure conversation</Button></>}
+    {!room.private && <p className="notice">Encryption is available for private chats, not public channels.</p>}
+    {!security.enabled && <><label className="check-label"><input type="checkbox" checked={acknowledged} onChange={e => setAcknowledged(e.target.checked)} />I understand: losing the key loses access; old plaintext stays in Git history. I will back up the key and verify its fingerprint with my friend.</label><Button role="switch" aria-checked={false} disabled={!room.private || room.canWrite !== true || !acknowledged || busy || !security.loaded} loading={busy} onClick={() => void enable()}><LockKeyhole />Enable secure conversation</Button></>}
     {security.enabled && <Button variant="outline" disabled={!security.hasKey} onClick={() => void reveal()}><QrCode />Show key QR / backup</Button>}
     {fingerprint && <div className="fingerprint"><span>SHA-256 fingerprint · compare out of band</span><code>{fingerprint.match(/.{1,8}/g)?.join(" ")}</code></div>}
     {share && <div className="key-share"><div className="qr-code" dangerouslySetInnerHTML={{ __html: svg }} /><p className="fine-print">This QR contains the secret key. Share only through a trusted channel, never inside this repository. It does not grant GitHub access. The URL fragment is removed before sign-in and is not sent in HTTP requests.</p><Button variant="outline" onClick={async () => { try { await navigator.clipboard.writeText(share); setCopied(true); } catch { setError("Clipboard unavailable. Download the key backup instead."); } }}>{copied ? <Check /> : <Copy />}Copy secret invite link</Button><Button variant="ghost" onClick={() => { const url = URL.createObjectURL(new Blob([share], { type: "text/plain" })); const a = document.createElement("a"); a.href = url; a.download = "gitmsg-room-key.txt"; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000); }}><Download />Download key backup</Button><Button variant="ghost" onClick={() => setShare("")}>Hide key</Button></div>}

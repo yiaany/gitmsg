@@ -6,19 +6,7 @@
     "components/kokonutui/command-button.tsx": "dd72e9e64ee1359b6e2a03202de80fd26ef6a59b2b93772725d8a4ed6924e0f4",
     "components/kokonutui/particle-button.tsx": "7aa524b753840de287415d00f8db60b51f04d8397769732aae16dce8f7b46ef7",
     "components/kokonutui/loader.tsx": "80640068a1d8572796ceb9e143ff253b7199058dd01be2473fed76563c0fc38e",
-    "components/kokonutui/slide-text-button.tsx": "a1e5f9482b043c148c8603a98ed3fa4b7818b874e1da4ccb767a632f4e176431",
     "LICENSE": "b2e018ad1fd564608cc1ee0c2ad675ce5202c8ed9f5f68e6d09e7b6bc881d5d2"
   },
-  "fonts": [
-    {
-      "path": "public/fonts/Geist-latin.woff2",
-      "url": "https://kokonutui.com/_next/static/media/caa3a2e1cccd8315-s.p.0wgildi0cnwt9.woff2",
-      "sha256": "9b6f5ff45b278c744b5f379a2c4ecbaf858a842b8eaf82ac8d21b699ca16c608"
-    },
-    {
-      "path": "public/fonts/Geist-cyrillic.woff2",
-      "url": "https://kokonutui.com/_next/static/media/8a480f0b521d4e75-s.1qq4vpdcun5oj.woff2",
-      "sha256": "6129fc8571c3e0cb0a4c41f5160c974a843b055009dc4ad8858bd808e18a2d86"
-    }
-  ]
+  "fonts": []
 }

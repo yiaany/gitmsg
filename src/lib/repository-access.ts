@@ -1,4 +1,6 @@
 import { validRepo, type Room } from "./protocol";
+import { repositoryRoom } from "./github-models";
+export { repositoryRoom } from "./github-models";
 
 type Repository = { full_name: string; name: string; description?: string; default_branch?: string; private: boolean; permissions?: { push?: boolean } };
 type Invitation = { id: number; repository: { full_name: string } };
@@ -7,16 +9,14 @@ export type JoinStatus = { status: "ready"; room: Room } | { status: "invited" |
 export class RepositoryAccessError extends Error {
   constructor(public status: number, message: string) { super(message); }
 }
-export function repositoryRoom(repo: Repository): Room {
-  return { id: repo.full_name, name: repo.name.replace(/^gitmsg-/, ""), description: repo.description || "A conversation with version control.", branch: repo.default_branch || "main", private: repo.private };
-}
 function validate(repo: string) {
   if (typeof repo !== "string" || !validRepo(repo)) throw new RepositoryAccessError(400, "Use owner/repository, for example octocat/gitmsg-friends.");
 }
 async function writableRoom(request: Request, repo: string): Promise<Room | null> {
   try {
     const repository: Repository = await (await request(`/repos/${repo}`)).json();
-    return repository.permissions?.push ? repositoryRoom(repository) : null;
+    const room = repositoryRoom(repository);
+    return room.canWrite || room.kind === "channel" ? room : null;
   } catch (error) {
     // GitHub deliberately returns 404 for private repositories without access.
     if (![403, 404].includes((error as { status: number }).status)) throw error;

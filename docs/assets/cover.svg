@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="560" viewBox="0 0 1280 560" role="img" aria-labelledby="title desc">
+  <title id="title">gitmsg — your messages, committed.</title>
+  <desc id="desc">A GitHub-backed messenger. Chats are repositories. Messages are commits. Built for the fun of it.</desc>
+  <defs>
+    <linearGradient id="surface" x2="1" y2="1"><stop stop-color="#17151f"/><stop offset="1" stop-color="#080808"/></linearGradient>
+    <radialGradient id="glow"><stop stop-color="#8774e1" stop-opacity=".16"/><stop offset="1" stop-color="#8774e1" stop-opacity="0"/></radialGradient>
+    <linearGradient id="line" x2="0" y2="1"><stop stop-color="#b8a8ff"/><stop offset="1" stop-color="#766ac8"/></linearGradient>
+  </defs>
+  <rect width="1280" height="560" rx="24" fill="#080808"/>
+  <ellipse cx="1060" cy="260" rx="390" ry="340" fill="url(#glow)"/>
+  <g font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Arial,sans-serif">
+    <text x="76" y="84" fill="#f4f4f5" font-size="29" font-weight="700" letter-spacing="-1.3">gitmsg<tspan fill="#b8a8ff">.</tspan></text>
+    <text x="76" y="191" fill="#77747e" font-size="12" letter-spacing="3">BUILT FOR THE FUN OF IT</text>
+    <text x="72" y="269" fill="#f5f5f5" font-size="65" font-weight="700" letter-spacing="-3">Your messages.</text>
+    <text x="72" y="343" fill="#b8a8ff" font-size="65" font-weight="700" letter-spacing="-3">Committed.</text>
+    <text x="76" y="398" fill="#aaa6b2" font-size="19">Chats are repositories. Messages are commits.</text>
+    <text x="76" y="430" fill="#aaa6b2" font-size="19">Yes, we actually made that work.</text>
+    <g transform="translate(806 101)">
+      <rect width="394" height="353" rx="24" fill="url(#surface)" stroke="#ffffff14"/>
+      <g stroke="url(#line)" stroke-width="3" fill="none"><path d="M54 58v230M54 116c0 40 48 30 48 67v49"/></g>
+      <g fill="#141219" stroke="#a896ee" stroke-width="3"><circle cx="54" cy="62" r="7"/><circle cx="54" cy="135" r="7"/><circle cx="102" cy="210" r="7"/><circle cx="54" cy="283" r="7"/></g>
+      <g font-family="ui-monospace,SFMono-Regular,Consolas,monospace" font-size="13">
+        <text x="78" y="58" fill="#b8a8ff">feat(chat)</text><text x="78" y="80" fill="#e3dfe9">ship a thought</text>
+        <text x="78" y="131" fill="#b8a8ff">fix(chat)</text><text x="78" y="153" fill="#e3dfe9">rewrite that thought</text>
+        <text x="126" y="206" fill="#b8a8ff">chore(chat)</text><text x="126" y="228" fill="#e3dfe9">emotional support emoji</text>
+        <text x="78" y="279" fill="#b8a8ff">revert(chat)</text><text x="78" y="301" fill="#e3dfe9">plausible deniability</text>
+      </g>
+    </g>
+    <text x="76" y="508" fill="#67636f" font-size="12" letter-spacing="1">GITHUB IDENTITY  /  REAL CONVERSATIONS  /  A LITTLE GIT UNDERNEATH</text>
+  </g>
+</svg>

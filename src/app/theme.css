@@ -2,14 +2,15 @@
 @import "tw-animate-css";
 @custom-variant dark (&:is(.dark *));
 
-@font-face { font-family: "Cal Sans"; src: url("/fonts/CalSansVF.woff2") format("woff2"); font-weight: 100 900; font-style: normal; font-display: swap; }
 @font-face { font-family: "Geist Mono"; src: url("/fonts/GeistMono-latin.woff2") format("woff2"); font-weight: 100 900; font-style: normal; font-display: swap; }
-@font-face { font-family: "Geist"; src: url("/fonts/Geist-latin.woff2") format("woff2"); font-weight: 100 900; font-style: normal; font-display: swap; }
-@font-face { font-family: "Geist"; src: url("/fonts/Geist-cyrillic.woff2") format("woff2"); font-weight: 100 900; font-style: normal; font-display: swap; unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116; }
+@font-face { font-family: "Roboto"; src: url("/fonts/Roboto-Regular-latin.woff2") format("woff2"); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: "Roboto"; src: url("/fonts/Roboto-Regular-cyrillic.woff2") format("woff2"); font-weight: 400; font-style: normal; font-display: swap; unicode-range: U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116; }
+@font-face { font-family: "Roboto"; src: url("/fonts/Roboto-Medium-latin.woff2") format("woff2"); font-weight: 500 900; font-style: normal; font-display: swap; }
+@font-face { font-family: "Roboto"; src: url("/fonts/Roboto-Medium-cyrillic.woff2") format("woff2"); font-weight: 500 900; font-style: normal; font-display: swap; unicode-range: U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116; }
 
 @theme inline {
-  --font-sans: "Geist", Arial, sans-serif;
-  --font-heading: "Geist", Arial, sans-serif;
+  --font-sans: var(--chat-font);
+  --font-heading: var(--chat-font);
   --font-mono: "Geist Mono", monospace;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -35,44 +36,82 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
-/* Kokonut UI neutral surfaces and hairlines, adapted to gitmsg's charcoal palette. */
+/* Independently implemented using Telegram Web A's measured visual tokens. */
 :root {
-  --radius: 0.5rem;
-  --background: #141414;
-  --foreground: #f4f4f5;
-  --card: #18181b;
-  --popover: #1c1c1f;
-  --primary: #fafafa;
-  --primary-foreground: #18181b;
-  --secondary: rgb(255 255 255 / 5%);
-  --muted-foreground: #a1a1aa;
-  --border: rgb(255 255 255 / 10%);
-  --input: rgb(255 255 255 / 14%);
-  --ring: #a1a1aa;
-  --surface-hover: rgb(255 255 255 / 7%);
-  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --chat-font: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --radius: 0.75rem;
+  --island-radius: 2.573rem;
+  --list-radius: 1.715rem;
+  --modal-radius: 3.43rem;
+  --floating-surface: #ffffffdd;
+  --settings-background: #f4f4f5;
+  --background: #fff;
+  --foreground: #000;
+  --card: #fff;
+  --popover: #fff;
+  --primary: #3390ec;
+  --chat-active: #3390ec;
+  --primary-foreground: #fff;
+  --secondary: #f4f4f5;
+  --muted-foreground: #707579;
+  --border: #dadce0;
+  --input: #dadce0;
+  --ring: #3390ec;
+  --surface-hover: #f4f4f5;
+  --chat-canvas: #d5dfbc;
+  --bubble-own: #eeffde;
+  --bubble-own-meta: #4fae4e;
+  --link: #3390ec;
+  --service-background: #708b5473;
+  --ease-out: cubic-bezier(0.33, 1, 0.68, 1);
+  --slide-transition: 300ms cubic-bezier(0.25, 1, 0.5, 1);
+  --layer-transition: 300ms cubic-bezier(0.33, 1, 0.68, 1);
   --duration-fast: 150ms;
-  --duration-normal: 220ms;
-  --shadow-panel: 0 24px 80px -36px rgb(0 0 0 / 60%), 0 1px 0 rgb(255 255 255 / 4%) inset;
+  --duration-normal: 300ms;
+  --shadow-panel: 0 8px 32px rgb(0 0 0 / 16%);
+  color-scheme: light;
+}
+:root[data-apple="true"] { --chat-font: system-ui, -apple-system, BlinkMacSystemFont, "Roboto", "Apple Color Emoji", "Helvetica Neue", sans-serif; --bubble-own: #dcf8c5; }
+:root[data-theme="dark"] {
+  --background: #212121;
+  --floating-surface: #212121dd;
+  --settings-background: #0f0f0f;
+  --foreground: #fff;
+  --card: #212121;
+  --popover: #292929;
+  --primary: #8774e1;
+  --chat-active: #766ac8;
+  --primary-foreground: #fff;
+  --secondary: #2c2c2c;
+  --muted-foreground: #aaa;
+  --border: #303030;
+  --input: #444;
+  --ring: #8774e1;
+  --surface-hover: #2c2c2c;
+  --chat-canvas: #0f0f0f;
+  --bubble-own: #766ac8;
+  --bubble-own-meta: #ffffffa6;
+  --link: #8774e1;
+  --service-background: #0006;
   color-scheme: dark;
 }
 
 @layer base {
   * { @apply border-border outline-ring/50; }
-  body { margin: 0; background: var(--background); color: var(--foreground); font-family: var(--font-sans); -webkit-font-smoothing: antialiased; }
+  body { margin: 0; background: var(--background); color: var(--foreground); font-family: var(--font-sans); font-size: 16px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
   code, kbd, pre { font-family: var(--font-mono); }
   button, a, input, textarea { -webkit-tap-highlight-color: transparent; }
   button { cursor: pointer; }
   button:disabled { cursor: default; }
   a { text-underline-offset: 3px; }
-  ::selection { background: #ffffff26; }
+  ::selection { background: #3390ec40; }
 }
 
 /* Transforms/opacity carry motion; no global animation loop or transition-all. */
 [data-slot=button] { transition-property: background-color, color, border-color, opacity, transform; transition-duration: var(--duration-fast); transition-timing-function: var(--ease-out); }
-[data-slot=button]:active:not(:disabled) { transform: scale(.97); }
+[data-slot=button]:active:not(:disabled) { filter: brightness(.94); }
 .lucide { stroke-width: 1.75; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
-  [data-slot=button]:active:not(:disabled) { transform: none; }
+  [data-slot=button]:active:not(:disabled) { filter: none; }
 }

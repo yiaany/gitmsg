@@ -11,7 +11,7 @@ const missing = () => { throw Object.assign(new Error("Not found"), { status: 40
 test("a collaborator opens the shared room without an invitation lookup", async () => {
   const calls: string[] = [];
   const result = await inspectRepositoryAccess(async path => { calls.push(path); return ok(repository); }, repo);
-  assert.deepEqual(result, { status: "ready", room: { id: repo, name: "friends", description: "A conversation with version control.", branch: "chat", private: true } });
+  assert.deepEqual(result, { status: "ready", room: { id: repo, name: "friends", description: "", branch: "chat", private: true, kind: "chat", canWrite: true } });
   assert.deepEqual(calls, [`/repos/${repo}`]);
 });
 test("private repository 404 resolves to the signed-in user's pending invitation, without accepting it", async () => {
@@ -28,6 +28,12 @@ test("a shared link with no invitation does not grant access or hide the reason"
 test("read-only repository access still requires a collaborator invitation", async () => {
   const result = await inspectRepositoryAccess(async path => ok(path.startsWith("/repos/") ? { ...repository, permissions: { push: false } } : []), repo);
   assert.equal(result.status, "unavailable");
+});
+test("public gitmsg channels open without accepting a collaborator invitation", async () => {
+  const channel = { ...repository, full_name: "owner/gitmsg-channel-news", name: "gitmsg-channel-news", description: "[gitmsg:channel:v1] News", private: false, permissions: { push: false } };
+  const result = await inspectRepositoryAccess(async path => { assert.equal(path, `/repos/${channel.full_name}`); return ok(channel); }, channel.full_name);
+  assert.equal(result.status, "ready");
+  if (result.status === "ready") { assert.equal(result.room.kind, "channel"); assert.equal(result.room.canWrite, false); }
 });
 test("only the matching invitation from the authenticated account is accepted", async () => {
   let accepted = false;

@@ -1,0 +1,8 @@
+Roboto
+Copyright 2011 Google Inc. All Rights Reserved.
+Licensed under the Apache License, Version 2.0. See Roboto-LICENSE.txt.
+
+Unmodified Latin and Cyrillic WOFF2 subsets, regular and medium weights.
+Retrieved from Ajaxy/telegram-tt at commit
+6002824b6532f3d913997ce496d9ab5f9b86bc22, src/assets/fonts/.
+Original font project: https://github.com/googlefonts/roboto

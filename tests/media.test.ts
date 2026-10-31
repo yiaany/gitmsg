@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { loadMedia } from "../src/lib/media";
 import { digest } from "../src/lib/room-crypto";
 import { EVENT_PREFIX, MAX_MEDIA, parseCommit, validAttachment, validEvent, materialize, type Attachment, type ChatEvent } from "../src/lib/protocol";
+import { voiceClock, voiceWaveform } from "../src/lib/voice";
 const attachment: Attachment = { id: "attachment-test", name: "image.webp", mime: "image/webp", size: 10, sha256: "a".repeat(64) };
 const event: ChatEvent = { v: 1, id: "message-media", kind: "message", actor: { id: 1, login: "octocat" }, createdAt: "2026-10-30T12:00:00Z", text: "", attachments: [attachment] };
 test("media metadata validates size, type, digest, IV and duration", () => {
@@ -14,6 +15,16 @@ test("hiding media tombstones attachments without changing the original event", 
   const removed: ChatEvent = { ...event, id: "delete-media", kind: "delete", target: event.id };
   assert.equal(materialize([event, removed])[0].attachments, undefined);
   assert.equal(event.attachments?.length, 1);
+});
+test("voice amplitude metadata is bounded and survives materialization", () => {
+  const waveform = voiceWaveform([0, .2, .9, Infinity, -1, 2]);
+  assert.equal(waveform.length, 48);
+  assert.ok(waveform.every(value => Number.isInteger(value) && value >= 0 && value <= 31));
+  const voice = { ...attachment, mime: "audio/webm", duration: 1.2, waveform };
+  assert.ok(validAttachment(voice));
+  assert.deepEqual(materialize([{ ...event, attachments: [voice] }])[0].attachments?.[0].waveform, waveform);
+  for (const invalid of [[], Array(65).fill(1), [32], [-1], [.5], [NaN], "bad"]) assert.equal(validAttachment({ ...voice, waveform: invalid }), false);
+  assert.equal(voiceClock(61.5), "1:01");
 });
 test("historical drawing events still parse, materialize and download unchanged", async t => {
   const bytes = new TextEncoder().encode('{"type":"excalidraw","elements":[]}');

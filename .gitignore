@@ -6,3 +6,10 @@ node_modules/
 .DS_Store
 coverage/
 .vercel/
+*.pem
+*.key
+*.p12
+*.pfx
+*.log
+playwright-report/
+test-results/

@@ -21,6 +21,19 @@ test("image and voice attachments retain their click-to-load controls", () => {
   const render = (mime: string) => renderToStaticMarkup(createElement(MediaMessage, { room, attachment: { ...attachment, mime } }));
   assert.match(render("image/webp"), /Load image/);
   assert.match(render("audio/webm"), /Voice note/);
+  assert.match(render("audio/webm"), /aria-label="Play audio"/);
+  assert.match(render("audio/webm"), /voice-message-wave/);
+  assert.doesNotMatch(render("audio/webm"), /<audio[^>]*controls|Load voice|Download/);
+});
+
+test("short and long voice notes use bounded waveform lanes without eager media loading", () => {
+  for (const [duration, width] of [[1, 180], [60, 357]]) {
+    const html = renderToStaticMarkup(createElement(MediaMessage, { room, attachment: { ...attachment, name: "voice.webm", mime: "audio/webm", duration, waveform: Array(48).fill(16) } }));
+    assert.match(html, new RegExp(`width:${width}px`));
+    assert.match(html, /preload="none"/);
+    assert.doesNotMatch(html, /src=|controls=/);
+    assert.equal((html.match(/<i style=/g) || []).length, 40);
+  }
 });
 
 test("whiteboard UI, dependency, adapters and assets are removed", () => {

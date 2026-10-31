@@ -1,0 +1,26 @@
+<!-- Original gitmsg artwork. Copyright (c) 2026 gitmsg contributors. MIT. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="480" viewBox="0 0 480 480" fill="none" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+  <g transform="translate(26 28) rotate(-12 24 18)"><path d="M4 4h40v26H20L9 40V30H4Z"/><path d="M13 13h22M13 21h14"/></g>
+  <g transform="translate(122 18) rotate(15 20 24)"><circle cx="10" cy="8" r="4"/><circle cx="10" cy="40" r="4"/><circle cx="34" cy="12" r="4"/><path d="M10 12v24m0-10c24 0 24-2 24-10"/></g>
+  <g transform="translate(218 36) rotate(-8)"><path d="m3 14 12-10M3 14l12 10m29-10L32 4m12 10L32 24M26 0l-6 29"/></g>
+  <g transform="translate(332 20) rotate(12 22 20)"><path d="M3 5h38v28H3Z"/><path d="m8 25 10-10 8 8 6-5 5 7"/><circle cx="30" cy="12" r="3"/></g>
+  <g transform="translate(423 48) rotate(-18)"><path d="m0 5 33-5-7 32-9-15Z"/><path d="m17 17 16-17M17 17l-2 12 7-7"/></g>
+  <g transform="translate(62 122) rotate(10 20 20)"><rect x="0" y="0" width="45" height="34" rx="6"/><path d="m9 10 7 7-7 7m15 0h11"/></g>
+  <g transform="translate(173 101) rotate(-15 16 24)"><rect x="9" y="0" width="14" height="29" rx="7"/><path d="M2 20v3a14 14 0 0 0 28 0v-3M16 37v9M8 46h16"/></g>
+  <g transform="translate(274 119) rotate(9 23 15)"><path d="M0 15h12m23 0h12"/><circle cx="23.5" cy="15" r="11"/><path d="m20 10 8 5-8 5Z"/></g>
+  <g transform="translate(391 121) rotate(-10 15 20)"><path d="M6 16V9a10 10 0 0 1 20 0v7"/><rect x="1" y="16" width="30" height="24" rx="5"/><circle cx="16" cy="26" r="2"/><path d="M16 28v5"/></g>
+  <g transform="translate(20 224) rotate(-8)"><path d="M0 15C0-3 25-4 25 10c0-14 25-13 25 5 0 12-25 28-25 28S0 27 0 15Z"/></g>
+  <g transform="translate(123 218) rotate(12 20 20)"><path d="M4 0h32v43L20 32 4 43Z"/></g>
+  <g transform="translate(224 214) rotate(-12 20 22)"><path d="m20 0 6 14 15 2-11 11 3 16-13-8-14 8 3-16L0 16l15-2Z"/></g>
+  <g transform="translate(333 214) rotate(15 20 20)"><circle cx="20" cy="20" r="19"/><path d="M20 8v12l8 6"/></g>
+  <g transform="translate(432 221) rotate(-13)"><path d="M0 0h25v33H0Z"/><path d="M7 9h11M7 16h11M7 23h6"/></g>
+  <g transform="translate(62 326) rotate(11 20 20)"><path d="M2 0h36v27H2Z"/><path d="M20 27v9m-11 0h22M9 10l5 5-5 5m12 0h9"/></g>
+  <g transform="translate(173 317) rotate(-8 20 20)"><path d="m0 22 22-22 17 17-22 22Z"/><path d="m18 4 17 17M4 26l9 9"/><circle cx="26" cy="13" r="2"/></g>
+  <g transform="translate(278 319) rotate(15)"><path d="M2 8h12l5-6h15l5 6h9v29H2Z"/><circle cx="25" cy="22" r="9"/></g>
+  <g transform="translate(394 324) rotate(-9)"><path d="M0 16c6-9 12-9 18 0s12 9 18 0"/><path d="M0 4c6-9 12-9 18 0s12 9 18 0M0 28c6-9 12-9 18 0s12 9 18 0"/></g>
+  <g transform="translate(23 420) rotate(-13)"><path d="M4 6h34v24H18L8 39V30H4Z"/><path d="m12 17 5 5 12-12"/></g>
+  <g transform="translate(128 418) rotate(10 20 15)"><path d="m0 8 9-8 9 8m-9-8v30m15-8 9 8 9-8m-9 8V0"/></g>
+  <g transform="translate(236 414) rotate(-7)"><path d="M0 9h12l8-9 8 9h12v29H0Z"/><path d="m10 23 7 7 14-17"/></g>
+  <g transform="translate(347 418) rotate(12)"><path d="M0 0h32v38H0Z"/><path d="m8 10 5 5-5 5m11 0h6M8 29h17"/></g>
+  <g stroke-width="2"><path d="M94 76h8m-4-4v8m208 86h8m-4-4v8M92 274h8m-4-4v8m221 114h8m-4-4v8M450 386h8m-4-4v8"/><circle cx="210" cy="178" r="2"/><circle cx="373" cy="87" r="2"/><circle cx="108" cy="389" r="2"/><circle cx="298" cy="466" r="2"/><circle cx="460" cy="174" r="2"/></g>
+</svg>

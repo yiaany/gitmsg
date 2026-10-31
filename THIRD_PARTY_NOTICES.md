@@ -1,6 +1,6 @@
 # coss UI
 
-Components in `src/components/ui/` are adapted from https://github.com/cosscom/ui/tree/main/packages/ui/src/components. Local import paths replace workspace aliases; unused variants and helpers are omitted. Buttons and dialogs are restyled with the Kokonut UI neutral tokens. Application layout is specific to gitmsg.
+Components in `src/components/ui/` are adapted from https://github.com/cosscom/ui/tree/main/packages/ui/src/components. Local import paths replace workspace aliases; unused variants and helpers are omitted. Buttons and dialogs are restyled with gitmsg's current theme tokens. Application layout is specific to gitmsg.
 
 MIT License
 
@@ -27,9 +27,19 @@ SOFTWARE.
 
 # Typography and design reference
 
-The initial monochrome direction used https://github.com/bklit/bklit-ui as a reference. The current typography and component styling use Kokonut UI's Geist / Geist Mono stack. No upstream branding, illustrations or marketing copy is included.
+The current fullscreen messenger uses Telegram Web A as a visual reference,
+not copied GPLv3 application code. Provenance, measurements and limitations
+are documented in `docs/TELEGRAM_DESIGN.md`. The original GitHub-backed
+application remains MIT licensed. No Telegram logos or icon font are bundled.
+The wallpaper in `public/chat-pattern.svg` is original gitmsg artwork under MIT.
+No Telegram application source, wallpaper, logo or icon font is distributed.
 
-Self-hosted font binaries and their SIL Open Font License are in `public/fonts/`.
+Roboto Regular/Medium Latin/Cyrillic subsets: Copyright 2011 Google Inc.
+All Rights Reserved. Apache License 2.0, included in
+`public/fonts/Roboto-LICENSE.txt`; attribution in `Roboto-NOTICE.txt`.
+
+Self-hosted Geist Mono uses the SIL Open Font License in `public/fonts/LICENSE.txt`.
+Unused Cal Sans and Geist Sans assets have been removed.
 
 # Kokonut UI
 
@@ -41,8 +51,6 @@ Copyright (c) 2025 kokonutUI, MIT License. Full original terms are in
 See that directory's README and `sources.json` for source URLs, hashes and
 local adaptations. Neutral hairlines, easing and prompt framing also reference
 the upstream `app/globals.css` and `components/kokonutui/ai-prompt.tsx`.
-Geist Latin and Cyrillic WOFF2 files are unmodified copies of the fonts served
-by kokonutui.com, redistributed under the included SIL Open Font License.
 
 # QR generation
 

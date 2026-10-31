@@ -12,6 +12,6 @@ export async function POST(request: NextRequest) {
       return json({ room: repositoryRoom(existing) });
     } catch (error) { if (!(error instanceof HttpError) || error.status !== 404) throw error; }
     const created = await (await github(session, "/user/repos", { method: "POST", body: JSON.stringify({ name: "gitmsg-saved", private: true, auto_init: true, description: "Your saved gitmsg messages. Readable without the website." }) })).json();
-    return json({ room: repositoryRoom(created) }, 201);
+    return json({ room: repositoryRoom({ ...created, permissions: { push: true } }) }, 201);
   } catch (error) { return failure(error); }
 }

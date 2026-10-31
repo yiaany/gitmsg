@@ -3,7 +3,7 @@ export const MAX_TEXT = 4000;
 export const REACTIONS = ["🚀", "❤️", "😂", "👀", "🔥", "👍"] as const;
 export type Reaction = typeof REACTIONS[number];
 export type Actor = { id: number; login: string; avatar?: string };
-export type Attachment = { id: string; name: string; mime: string; size: number; sha256: string; iv?: string; duration?: number; sourceRepo?: string; sourceBranch?: string };
+export type Attachment = { id: string; name: string; mime: string; size: number; sha256: string; iv?: string; duration?: number; waveform?: number[]; sourceRepo?: string; sourceBranch?: string };
 export const MEDIA_TYPES = ["image/webp", "image/png", "image/jpeg", "image/gif", "audio/webm", "audio/ogg", "audio/mp4", "application/vnd.excalidraw+json", "application/octet-stream"];
 export const MAX_MEDIA = 2 * 1024 * 1024;
 export type SealedContent = { algorithm: "AES-256-GCM"; iv: string; ciphertext: string; keyId: string };
@@ -44,9 +44,10 @@ export type Message = {
   savedFrom?: ChatEvent["savedFrom"];
   bot?: ChatEvent["bot"];
 };
-export type Room = { id: string; name: string; description: string; branch: string; demo?: boolean; private?: boolean };
+export type Room = { id: string; name: string; description: string; branch: string; private?: boolean; kind?: "chat" | "channel"; canWrite?: boolean; avatar?: string; color?: string; peer?: Actor };
 export function validAttachment(value: unknown): value is Attachment {
   const a = value as Attachment;
+  if (a?.waveform !== undefined && (!Array.isArray(a.waveform) || !a.waveform.length || a.waveform.length > 64 || !a.waveform.every(value => Number.isInteger(value) && value >= 0 && value <= 31))) return false;
   return !!a && /^[a-zA-Z0-9_-]{8,80}$/.test(a.id) && typeof a.name === "string" && a.name.length <= 160 && MEDIA_TYPES.includes(a.mime) && Number.isInteger(a.size) && a.size > 0 && a.size <= MAX_MEDIA + 16 && /^[a-f0-9]{64}$/.test(a.sha256) && (a.iv === undefined || /^[A-Za-z0-9_-]{16}$/.test(a.iv)) && (a.duration === undefined || (Number.isFinite(a.duration) && a.duration > 0 && a.duration <= 60)) && (a.sourceRepo === undefined || validRepo(a.sourceRepo)) && (a.sourceBranch === undefined || (typeof a.sourceBranch === "string" && a.sourceBranch.length <= 200));
 }
 
