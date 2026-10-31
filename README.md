@@ -1,120 +1,79 @@
-# gitmsg
+<h1 align="center">gitmsg</h1>
 
 <p align="center">
-  <a href="https://www.gitmsg.fun/">Open gitmsg</a> ·
-  <a href="#the-weird-part-is-real">How it works</a> ·
-  <a href="docs/SETUP.md">Run your own</a> ·
-  <a href="docs/ENCRYPTION.md">Encryption</a> ·
-  <a href="CONTRIBUTING.md">Contribute</a>
+  <strong>Your DMs. Their version control. Our questionable judgment.</strong><br />
+  A real messenger built on GitHub. Yes, every “lol” is a commit.
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Next.js-16-111111?style=flat-square" alt="Next.js 16" />
-  <img src="https://img.shields.io/badge/TypeScript-5b7db1?style=flat-square" alt="TypeScript" />
-  <img src="https://img.shields.io/badge/storage-GitHub-8774e1?style=flat-square" alt="Stored on GitHub" />
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-6c936c?style=flat-square" alt="MIT licensed" /></a>
+  <img src="https://img.shields.io/badge/Next.js-16-111111?style=flat-square&logo=nextdotjs" alt="Next.js 16" />
+  <img src="https://img.shields.io/badge/React-19-149eca?style=flat-square&logo=react&logoColor=white" alt="React 19" />
+  <img src="https://img.shields.io/badge/TypeScript-typed_chaos-3178c6?style=flat-square&logo=typescript&logoColor=white" alt="TypeScript: typed chaos" />
+  <img src="https://img.shields.io/badge/Node.js-22-5fa04e?style=flat-square&logo=nodedotjs&logoColor=white" alt="Node.js 22" />
+  <br />
+  <img src="https://img.shields.io/badge/database-literally_GitHub-8774e1?style=flat-square&logo=github&logoColor=white" alt="Storage: GitHub repositories" />
+  <img src="https://img.shields.io/badge/audio-WebRTC-ff6b6b?style=flat-square&logo=webrtc&logoColor=white" alt="WebRTC audio calls" />
+  <img src="https://img.shields.io/badge/encryption-opt--in-6c936c?style=flat-square&logo=letsencrypt&logoColor=white" alt="Optional encryption" />
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-eac54f?style=flat-square" alt="MIT license" /></a>
 </p>
 
-## Some things should exist just for the fun of it.
+<p align="center">
+  <a href="https://www.gitmsg.fun/"><img src="https://img.shields.io/badge/🚀_OPEN_GITMSG-SEND_SOMETHING_STUPID-8774e1?style=for-the-badge" alt="Open gitmsg — send something stupid" /></a>
+  <br /><br />
+  <strong>Get in before GitHub calls Microsoft and Microsoft calls SWAT. 🚨</strong><br />
+  <sub>It's a joke. We hope.</sub>
+</p>
 
-We turned GitHub into a messenger. Chats are repositories. Messages are commits.
-“I never said that” now comes with a `git log`.
+<p align="center">
+  <a href="#-wait-this-actually-works">The good stuff</a> ·
+  <a href="docs/SETUP.md">Self-host</a> ·
+  <a href="CONTRIBUTING.md">Contribute</a> ·
+  <a href="https://github.com/yiaany/gitmsg/issues/new/choose">Break something?</a>
+</p>
 
-Your friend sends “hey”. GitHub records a commit. Somewhere, a version-control
-purist feels a disturbance in the Force.
+---
 
-Not because the world needed another chat app. **Because we wanted to see if it
-would work.** No pitch deck. No grand plan to reinvent human connection. Just a
-weird idea, a familiar interface, and the unreasonable satisfaction of making
-them fit.
+## 💬 Wait, this actually works?
 
-Bring your GitHub account. Invite a friend. Talk about something stupid.
-**Real people. Real messages. A little Git underneath.**
+**Chats are repositories. Messages are commits.** “I never said that” now comes with a `git log`.
 
-No blockchain. No token launch. Just the other kind of token. Please keep that one secret.
-
-## It’s a messenger. Use it like one.
-
-| The familiar stuff | The slightly unhinged part |
+| You get | Git gets |
 | --- | --- |
-| Private chats and public channels | Each conversation lives in its own repository |
-| Replies, edits, reactions and Saved Messages | Every action is an append-only Git event |
-| Photos with a preview, caption and full-size viewer | Media is a real Git blob, verified before display |
-| Voice notes with waveforms and pause/resume | Record, listen, send. No fake audio bars |
-| One-to-one audio calls | Git batches signaling; WebRTC carries audio directly, with no TURN relay |
-| Search, pins, unread badges and keyboard shortcuts | Previews sync from actual commits; unread IDs stay local |
-| Profile photo, display name, bio and a music link | GitHub is your identity; publishing a profile is explicit |
-| Optional browser encryption | Your keys stay on your devices, not in the repo |
-| A tiny CLI and opt-in GitHub Actions integrations | The browser is not the only way to join the conversation |
+| 🔒 Private chats & public channels | A wildly unexpected career change |
+| 📸 Photos, files & voice notes | Actual blobs. Not a metaphor. |
+| ☎️ One-to-one audio calls | Signaling only. **We do not commit your breathing.** |
+| ↩️ Replies, edits & reactions | More commits. Obviously. |
+| 🔎 Search, pins & Saved Messages | Your “I'll remember this” folder |
+| 🗝️ Optional browser encryption | Ciphertext instead of your lore |
 
-Dark and light themes. Mobile navigation. Reduced-motion support. An English
-getting-started channel after sign-in. No fake people, simulated replies, Telegram
-account access, typing-indicator commits or surprise repositories on login.
+**Real people. Real messages. No fake online status.** Dark/light themes, mobile UI and keyboard shortcuts included. There's also `/shrug`. Essential infrastructure.
 
-## Take it for a spin
+### ⚡ Three steps to questionable greatness
 
-1. **Sign in with GitHub.** Read the permissions first. The sign-in itself creates nothing.
-2. **Start a chat.** Pencil → **New Message** → find a GitHub username → **Start chat**.
-3. **Bring your friend.** They accept the repository invitation on GitHub. Share the
-   chat link or QR from **⋮ → GitHub tools → Add members**. A link alone is not access.
-4. **Send something.** A photo. A voice note. An extremely important “lol”. It lands in Git.
-5. **Want encryption?** Open **Room security**, back up the key and share it separately.
+1. **[Open gitmsg](https://www.gitmsg.fun/)** → sign in with GitHub. Login creates no repositories.
+2. **New Message** → pick a friend → start a chat. They accept the GitHub repository invitation.
+3. **Send “hey”.** Congratulations. You have weaponized version control.
 
-> The linked site may be running an earlier deployment. This repository is the
-> source of truth; local checks are not proof of a deployed release.
+> [!IMPORTANT]
+> **Git remembers.** Standard messages are readable by GitHub and repository readers; deleting hides them, not their history. Encryption is opt-in, not retroactive. [Know the boundaries →](docs/ENCRYPTION.md)
 
-## The weird part is real
+<details>
+<summary><strong>🧠 Open the hood. Disappoint a database engineer.</strong></summary>
 
-```text
-  You                     gitmsg                          GitHub
-   │                         │                               │
-   ├─ send a message ────────►│                               │
-   │                         ├─ authenticate + validate ─────►│
-   │                         │                               ├─ events/…/<id>.json
-   │                         │◄──────── commit SHA ──────────┤
-   │◄── confirmed in Git ─────┤                               │
-   │                         │                               │
-   └─ other participants pick up the commit through polling ──┘
-```
+`You → authenticated API → event file + Git commit → your friend's polling tab`
 
-One event file, one actual commit. The structured event is also in the commit
-body, so a page of history doesn’t require reading every file individually.
-`message`, `edit`, `delete`, `reaction` — materialized in **Git order**, not whoever
-set their laptop clock to 2099. Encryption seals event content and media before upload.
+No persistent message database or separate realtime service. Audio travels directly over **WebRTC**, never into Git. Calls are best-effort: **no TURN**, some networks won't connect, both tabs must stay open. Unencrypted signaling can expose IP addresses in history. [Calls →](docs/CALLS.md)
 
-No persistent message database. No separate realtime subscription. No claim that
-GitHub somehow became a free, infinitely scalable chat backend.
+GitHub quotas and hosting limits still apply. “Stored in Git” does not mean “infinite free infrastructure.” [Operating limits →](docs/SETUP.md#delivery-and-costs--no-hand-waving)
 
-### Yes, it can make a phone call
+OAuth mode requests broad `repo` access; GitHub App mode supports scoped access. No independent security audit is claimed. Production uses Vercel Web Analytics with URL queries/fragments stripped and no message/account/call custom events.
 
-Open a private direct conversation → phone button → accept on the other side.
-The browser collects ICE parameters for 2.5 seconds, then commits one offer or
-answer, not one commit per candidate. Audio is direct WebRTC, encrypted in transit,
-never committed or relayed through our server. No paid calling service or TURN.
+</details>
 
-**Best effort, not every network.** Provider NAT/firewalls can prevent a direct
-connection. Both people need an open, online gitmsg tab; polling is not push.
-Standard signaling can expose IP addresses in permanent Git history. Room Security
-encrypts signaling; public STUN services still learn network addresses.
-[Call behavior, protocol and verification →](docs/CALLS.md)
+<details>
+<summary><strong>🛠️ Run your own questionable infrastructure.</strong></summary>
 
-### What gets created — and when
-
-| Repository | Created by |
-| --- | --- |
-| Private chat with `.gitmsg/room.json` | Explicitly starting a conversation |
-| Public `gitmsg-channel-*` | Explicitly publishing a channel |
-| Private `gitmsg-settings` | Saving a chat list or channel subscription |
-| Public `gitmsg-profile` | Saving a profile **with publication consent** |
-| Private `gitmsg-saved` | Opening/using Saved Messages |
-
-Existing unmarked or incorrectly public/private account repositories are not
-overwritten. Display titles can be Unicode; repository slugs remain separate.
-Search and exports cover **loaded** history. Clone a chat repo for its complete history.
-
-## Run your own
-
-**Node.js 22 · Next.js 16 · React 19 · TypeScript**
+**Node.js 22**, then:
 
 ```sh
 npm ci
@@ -122,95 +81,30 @@ cp .env.example .env.local
 npm run dev
 ```
 
-Then open `/setup`. You’ll need GitHub App or OAuth credentials and a random
-session secret for working sign-in; the build itself needs no credentials.
+Open `/setup`; configure your own GitHub credentials and session secret. **Secrets stay in `.env.local` or Vercel, never Git.** [Full setup →](docs/SETUP.md)
 
-**[Full setup & deployment guide →](docs/SETUP.md)**
+Keep app source and chat repos separate. Otherwise “lol” triggers a deployment. Funny once.
 
-Keep the website and chat repositories separate. Otherwise “lol” becomes a
-deployment pipeline. Funny once. Expensive after that.
+</details>
 
-## No magic privacy claims.
+<details>
+<summary><strong>🤝 Make this bad idea better.</strong></summary>
 
-- **GitHub can read standard messages.** Public channels and published profiles are public.
-- **Encryption is opt-in.** Browser AES-256-GCM protects future content, not old commits.
-  Back up your keys. There is no “forgot my key” escape hatch.
-- **Delete does not mean erase.** The chat hides the message. Git history and other
-  people’s clones can still contain it. Git remembers.
-- **A check means committed, not read.** Unread badges and pins are browser-local,
-  not synchronized read receipts. No fabricated online status.
-- **Trust your collaborators.** Direct repo writers can rewrite history and forge
-  protocol events. This is not a cryptographically verified identity system.
-- **Polling is not push.** Open tabs sync; closed tabs don’t. More saved chats mean
-  longer inactive-room cycles. GitHub quotas and hosting costs still apply.
-- **Website usage analytics:** production includes Vercel Web Analytics. Analytics
-  URLs omit query parameters and fragments; no message, call or account custom events are sent.
+Small PRs, tests, accessibility fixes and docs welcome. **[Start here →](CONTRIBUTING.md)**
 
-OAuth mode requests broad `repo` access; GitHub App mode can scope repository
-access. Sessions use encrypted HttpOnly cookies. No token is sent back to the UI.
-No independent cryptographic audit, forward secrecy or server-compromise resistance
-is claimed. Read the [threat model](docs/ENCRYPTION.md) and [operating limits](docs/SETUP.md#delivery-and-costs--no-hand-waving).
+[CLI & protocol](docs/PROTOCOL.md) · [Bots](docs/BOTS.md) · [Plugins](docs/PLUGINS.md) · [Roadmap](docs/ROADMAP.md)
 
-## Frequently questioned decisions
+Before shipping: `npm run check:secrets` · `npm test` · `npm run typecheck` · `npm run build`.
 
-**Is this a joke?** The premise is. The messages, uploads and GitHub operations aren't.
+[Report vulnerabilities privately](SECURITY.md). No tokens, room keys or real chats in issues. [Be excellent to each other](CODE_OF_CONDUCT.md). Opening the source? [Publication checklist →](docs/PUBLISHING.md)
 
-**Are you committing the audio from calls?** No. We are unreasonable, not *that* unreasonable.
-Git exchanges connection parameters; WebRTC carries the sound directly.
+</details>
 
-**Can I `git revert` an awkward conversation?** You can hide a message in the UI.
-You cannot un-send everybody's clone. Git is a terrible accomplice.
+---
 
-**Free forever, infinite scale, works on every network?** No. GitHub and hosting
-limits still apply, and direct calls sometimes cannot connect. We put those
-facts in the [setup guide](docs/SETUP.md), not behind an enterprise contact form.
+<p align="center"><strong>No pitch deck. No blockchain. Just “holy shit, it works.”</strong></p>
 
-## Help make this questionable idea better
-
-Found a bug? Have a useful idea? Good at making buttons work with a keyboard?
-Start with [CONTRIBUTING.md](CONTRIBUTING.md). Small PRs, regression tests,
-accessibility fixes and clearer docs are very welcome. No production credentials required.
-
-- [Report a bug or suggest a feature](https://github.com/yiaany/gitmsg/issues/new/choose).
-- [Security issue? Report it privately](SECURITY.md). No tokens or chat exports in issues.
-- [Code of Conduct](CODE_OF_CONDUCT.md): be excellent to each other.
-
-### Build something weird with it
-
-- [Protocol & scriptable CLI](docs/PROTOCOL.md) — send/read from the terminal.
-- [Actions participant](docs/BOTS.md) — explicitly installed, never silently enabled.
-- [Integration contracts](docs/PLUGINS.md) · [starter](plugins/coinflip/) · [contributing](CONTRIBUTING.md).
-- [What’s next](docs/ROADMAP.md) — directions, not imaginary shipped features.
-
-There’s also `/shrug`. Obviously.
-
-## Check before shipping
-
-```sh
-npm run check:secrets
-npm test
-npm run typecheck
-npm run build
-```
-
-The offline secret check scans publishable files and reachable local Git history
-including staged bytes and commit/tag messages, without printing matched values.
-It is a best-effort guardrail, not proof that a repository contains no sensitive data.
-HTTP smoke tests also run when `TEST_BASE_URL`
-points to a running instance. Browser fixtures are isolated test tools, not product
-demo conversations. Two-account OAuth/invitation and physical-device checks still
-need a configured deployment; unit tests aren’t a substitute.
-
-Opening the source? Follow the [publication checklist](docs/PUBLISHING.md).
-Production credentials stay in Vercel, not in this repository. Publishing source
-does not require making anybody's chat repositories public.
-
-## Ours, with credit where it’s due
-
-MIT. Original app logic, original wallpaper, no bundled Telegram application
-source. The interface takes visual cues from Telegram Web A; Base UI, coss UI,
-Kokonut UI and self-hosted fonts retain their respective notices.
-See [third-party licenses](THIRD_PARTY_NOTICES.md) and [design provenance](docs/TELEGRAM_DESIGN.md).
-
-**Not everything needs to become the next big thing. Sometimes “holy shit, it
-works” is enough.**
+<p align="center">
+  <sub>MIT · <a href="THIRD_PARTY_NOTICES.md">Third-party credits</a> · <a href="docs/TELEGRAM_DESIGN.md">Design provenance</a><br />
+  Not affiliated with GitHub, Microsoft or Telegram. Especially not their SWAT departments.</sub>
+</p>
