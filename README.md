@@ -37,6 +37,11 @@
 
 **Chats are repositories. Messages are commits.** “I never said that” now comes with a `git log`.
 
+> 🌱 **Actual commit farming.** One message = one commit. An edit? Another commit. A reaction? You guessed it.
+> Your team lead thinks you're shipping like a machine. You're arguing about pizza. **Git log doesn't snitch. The diffs do.**
+>
+> <sub>Real commits, not guaranteed green squares: GitHub's contribution-graph rules still apply.</sub>
+
 | You get | Git gets |
 | --- | --- |
 | 🔒 Private chats & public channels | A wildly unexpected career change |
