@@ -13,6 +13,7 @@ export function LoginScreen({ session, error, onRetry }: { session: { configured
       <p>Bring your GitHub account. Invite a friend. Send a photo, leave a voice note, react to something stupid. No fake conversations, no bot pretending to be your friend. <strong>Real people. Real messages. A little Git underneath.</strong></p>
       <p>No magic privacy claims, either. GitHub can read standard messages; public channels are public. Browser encryption is optional, and your keys are yours to keep. Deleting a message hides it from the chat — <strong>Git still remembers.</strong></p>
       <p>Not everything needs to become the next big thing. <strong>Sometimes “holy shit, it works” is enough.</strong></p>
+      <p><a className="manifest-source" href="https://github.com/yiaany/gitmsg" target="_blank" rel="noopener noreferrer"><Github size={16} />View source on GitHub<span aria-hidden="true">↗</span></a></p>
     </article>
   </section></main>;
 }

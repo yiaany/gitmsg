@@ -479,6 +479,9 @@ button.settings-row:hover, a.settings-row:hover { background: var(--surface-hove
 .login-manifest > p:last-child { margin-bottom: 0; }
 .login-manifest strong { color: #fff; font-weight: 600; }
 .login-manifest code { font-size: .9em; color: #ddd; }
+.manifest-source { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; color: #ddd; text-decoration: underline; text-underline-offset: 4px; }
+.manifest-source:hover { color: #fff; }
+.manifest-source:focus-visible { outline: 2px solid #fff; outline-offset: 4px; border-radius: 4px; }
 .login-error { margin-top: 16px; color: #ef6b6b; font-size: 14px; }
 .login-error button { margin-left: 8px; text-decoration: underline; }
 .empty-inbox-error { margin: auto 32px 32px; padding: 16px; border-radius: 16px; background: var(--background); }

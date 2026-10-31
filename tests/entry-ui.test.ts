@@ -20,6 +20,13 @@ test("unconfigured sign-in cannot link to a broken OAuth flow", () => {
   assert.match(html, /disabled/); assert.match(html, /href="\/setup"/);
   assert.doesNotMatch(html, /href="\/api\/auth\/login"/);
 });
+test("manifest links to source independently of sign-in configuration", () => {
+  for (const session of [null, { configured: false, mode: "oauth" }, { configured: true, mode: "oauth" }]) {
+    const html = renderToStaticMarkup(createElement(LoginScreen, { session, onRetry() {} }));
+    assert.match(html, /<a class="manifest-source" href="https:\/\/github\.com\/yiaany\/gitmsg" target="_blank" rel="noopener noreferrer">/);
+    assert.match(html, /View source on GitHub/);
+  }
+});
 test("welcome uses English message bubbles without explanatory labels or fake receipts", () => {
   const html = renderToStaticMarkup(createElement(WelcomeChannel, { onBack() {}, onNew() {} }));
   assert.match(html, /Getting started/);
