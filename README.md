@@ -137,6 +137,8 @@ deployment pipeline. Funny once. Expensive after that.
   protocol events. This is not a cryptographically verified identity system.
 - **Polling is not push.** Open tabs sync; closed tabs don’t. More saved chats mean
   longer inactive-room cycles. GitHub quotas and hosting costs still apply.
+- **Website usage analytics:** production includes Vercel Web Analytics. Analytics
+  URLs omit query parameters and fragments; no message, call or account custom events are sent.
 
 OAuth mode requests broad `repo` access; GitHub App mode can scope repository
 access. Sessions use encrypted HttpOnly cookies. No token is sent back to the UI.
