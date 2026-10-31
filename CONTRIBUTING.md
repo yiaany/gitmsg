@@ -1,14 +1,69 @@
-# Contributing
+# Contributing to gitmsg
 
-Use Node 22. Install with `npm ci --include=dev --include=optional`, then run
-`npm test`, `npm run typecheck`, and `npm run build`.
-Use `TEST_BASE_URL` to include HTTP smoke tests against your local server.
+Thanks for helping turn an objectively questionable idea into better software.
+Small fixes, tests, docs, accessibility improvements and carefully scoped features
+are welcome. You do not need to invent another transport protocol to fix a typo.
 
-Keep the UI English, monochrome, keyboard-accessible and built with the existing
-Kokonut UI components and Base UI primitives. Keep reduced-motion support and
-source/license attribution. Do not add analytics, external fonts, arbitrary HTML,
-paid infrastructure, secrets or token/key logging. Live features must use real
-GitHub operations; simulations must be explicitly labeled demo-only.
+## Get running
+
+1. Fork/clone the source repository and use **Node.js 22** (`.nvmrc`).
+2. `npm ci --include=dev --include=optional`.
+3. `cp .env.example .env.local` and `npm run dev`.
+4. For real sign-in, configure your **own** GitHub OAuth/App credentials using
+   [SETUP.md](docs/SETUP.md). Never request production credentials from maintainers.
+
+The build and unit tests need no credentials. Browser fixtures live in
+`tests/fixtures/`; all their API writes stay in memory and use synthetic accounts.
+Real integration testing belongs in dedicated private test repositories, never
+the website source repo or somebody's actual inbox.
+
+## Before opening a PR
+
+```sh
+npm run check:secrets
+npm test
+npm run typecheck
+npm run build
+```
+
+For HTTP smoke checks, start a production instance with its matching `APP_URL`
+and run the suite with `TEST_BASE_URL` set to that origin. See
+[SETUP.md](docs/SETUP.md#checks). Do not rebuild `.next` while a test server is
+serving it. Call/browser verification and its limitations are in [CALLS.md](docs/CALLS.md).
+
+Open an issue first for large UI, protocol, encryption or infrastructure changes.
+Keep PRs focused; explain the user benefit, test results and known limitations.
+Use synthetic screenshots and the PR checklist. Never attach tokens, cookies,
+private chat exports, room keys, real invite links or full network captures.
+Security bugs go through [SECURITY.md](SECURITY.md), not public issues.
+
+## Project guardrails
+
+- Keep interface copy **English** and follow the current components, spacing and
+  naming. Preserve keyboard access, screen-reader labels and reduced motion.
+- Real people, real Git operations. No fabricated replies, online status, read
+  receipts or anonymous production demo conversations. Fixtures stay test-only.
+- Preserve existing history/protocol compatibility and encryption semantics.
+  Validate untrusted inputs; test failure, conflict, retry and permission paths.
+- Never log tokens/keys or expose them through `NEXT_PUBLIC_`, API responses,
+  screenshots or analytics. Vercel page analytics is already configured to strip
+  URL queries/fragments; do not add identity/message/call tracking without review.
+- No new external scripts/fonts, remote executable loading, surprise repositories,
+  silent permissions or paid infrastructure. Discuss new dependencies, destinations,
+  quotas and operating costs before introducing them.
+- Preserve MIT and third-party/font notices. Visual reference is not permission
+  to copy GPL application code or branded assets into this MIT project.
+
+## Where things live
+
+| Path | Purpose |
+| --- | --- |
+| `src/app/api/` | Authenticated GitHub-backed server operations |
+| `src/lib/protocol.ts`, `room-crypto.ts` | Event validation, history and encryption |
+| `src/lib/audio-call.ts` | Direct audio lifecycle and resource cleanup |
+| `src/components/` | Messenger UI and browser integrations |
+| `tests/`, `scripts/check-secrets.mjs` | Regression checks and publication safety |
+| `docs/`, `public/integrations/`, `plugins/` | Protocol, CLI and opt-in integrations |
 
 ## Plugin pull requests
 
@@ -17,16 +72,11 @@ GitHub operations; simulations must be explicitly labeled demo-only.
 2. Copy `templates/plugin/` to `plugins/<your-id>/`. Include a manifest,
    handler, README, dry-run example and tests. See `plugins/coinflip/`.
 3. Request the smallest permissions. No implicit execution on every message,
-   dynamic remote code loading, arbitrary shell commands or hidden network calls.
+   arbitrary shell commands, remote code loading or hidden network calls.
 4. Test success, invalid input, permission denial, retries and secure-room refusal.
    Document limits, cost/quota, install paths and uninstall behavior.
-5. Open a PR using `.github/PULL_REQUEST_TEMPLATE/plugin.md`. Maintainers review
-   code, security, UI and dependencies before adding a curated registration or
-   downloadable installer. A merged source contribution is not automatic install
-   or consent to execute it in every user's repo.
+5. Use `.github/PULL_REQUEST_TEMPLATE/plugin.md`. Merging source is **not** consent
+   to automatically install or run a plugin in users' repositories.
 
-This repository may be private. External contributors need repository access,
-or the maintainer must publish the source/integration kit first. Never copy
-private conversations into a public issue or PR. Report security issues privately
-to the maintainer before publishing exploit details; there is no audited security
-program or guaranteed response SLA.
+Be excellent to each other: [Code of Conduct](CODE_OF_CONDUCT.md). Contributions
+are under this repository's [MIT license](LICENSE); keep attribution for code you reuse.

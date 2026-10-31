@@ -13,3 +13,13 @@ coverage/
 *.log
 playwright-report/
 test-results/
+# Local credentials, database dumps and accidental chat exports do not belong in the app repo.
+.npmrc
+.netrc
+credentials.json
+*.sqlite
+*.sqlite3
+*.db
+/events/
+/media/
+/exports/

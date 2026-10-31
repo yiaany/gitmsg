@@ -1,0 +1,35 @@
+name: Bug report
+description: Something broke. Git probably remembers.
+title: "[Bug]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Security issue? Read SECURITY.md instead of posting exploit details here.**
+        Never include tokens, cookies, OAuth codes, room-key links, private repository names, chat exports or unredacted screenshots/network logs.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What happened?
+      description: Describe actual and expected behavior, without private conversation data.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Use synthetic users and a throwaway private test repository.
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      placeholder: Browser/version, OS, hosted site or self-hosted commit
+    validations:
+      required: true
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Optional redacted diagnostics
+      description: Error message, approximate time or a minimal synthetic example. No full HAR files or credentials.

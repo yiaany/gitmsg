@@ -43,11 +43,16 @@ and links, and #aaa secondary text. The seven measured peer colors are
 
 Only gitmsg's actual screens are included: conversations, message history,
 composer, search and existing settings/security/integration dialogs. No
-Telegram login, calls, stories, contacts, or fabricated online/read/unread
+Telegram login, service-backed calls, stories, contacts, or fabricated online/read/unread
 states. A single check indicates local/Git persistence, not a read receipt.
 The user's screenshot is the target: dark theme by default, near-black
 canvas, original doodle wallpaper, purple outgoing bubbles and selected chat.
 UI icons remain Lucide; no Telegram icon font, logo or application code is bundled.
+
+The later independent audio-call panel uses the same visual reference: a
+560×680 surface, profile-color gradient, 48px circular controls and a red end-call
+button. It runs gitmsg's own Git signaling and direct WebRTC lifecycle, not
+Telegram's calling infrastructure. See [CALLS.md](CALLS.md).
 
 ## Interaction pass
 

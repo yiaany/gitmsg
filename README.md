@@ -4,7 +4,8 @@
   <a href="https://www.gitmsg.fun/">Open gitmsg</a> ·
   <a href="#the-weird-part-is-real">How it works</a> ·
   <a href="docs/SETUP.md">Run your own</a> ·
-  <a href="docs/ENCRYPTION.md">Encryption</a>
+  <a href="docs/ENCRYPTION.md">Encryption</a> ·
+  <a href="CONTRIBUTING.md">Contribute</a>
 </p>
 
 <p align="center">
@@ -19,6 +20,9 @@
 We turned GitHub into a messenger. Chats are repositories. Messages are commits.
 “I never said that” now comes with a `git log`.
 
+Your friend sends “hey”. GitHub records a commit. Somewhere, a version-control
+purist feels a disturbance in the Force.
+
 Not because the world needed another chat app. **Because we wanted to see if it
 would work.** No pitch deck. No grand plan to reinvent human connection. Just a
 weird idea, a familiar interface, and the unreasonable satisfaction of making
@@ -26,6 +30,8 @@ them fit.
 
 Bring your GitHub account. Invite a friend. Talk about something stupid.
 **Real people. Real messages. A little Git underneath.**
+
+No blockchain. No token launch. Just the other kind of token. Please keep that one secret.
 
 ## It’s a messenger. Use it like one.
 
@@ -145,7 +151,31 @@ access. Sessions use encrypted HttpOnly cookies. No token is sent back to the UI
 No independent cryptographic audit, forward secrecy or server-compromise resistance
 is claimed. Read the [threat model](docs/ENCRYPTION.md) and [operating limits](docs/SETUP.md#delivery-and-costs--no-hand-waving).
 
-## Build something weird with it
+## Frequently questioned decisions
+
+**Is this a joke?** The premise is. The messages, uploads and GitHub operations aren't.
+
+**Are you committing the audio from calls?** No. We are unreasonable, not *that* unreasonable.
+Git exchanges connection parameters; WebRTC carries the sound directly.
+
+**Can I `git revert` an awkward conversation?** You can hide a message in the UI.
+You cannot un-send everybody's clone. Git is a terrible accomplice.
+
+**Free forever, infinite scale, works on every network?** No. GitHub and hosting
+limits still apply, and direct calls sometimes cannot connect. We put those
+facts in the [setup guide](docs/SETUP.md), not behind an enterprise contact form.
+
+## Help make this questionable idea better
+
+Found a bug? Have a useful idea? Good at making buttons work with a keyboard?
+Start with [CONTRIBUTING.md](CONTRIBUTING.md). Small PRs, regression tests,
+accessibility fixes and clearer docs are very welcome. No production credentials required.
+
+- [Report a bug or suggest a feature](https://github.com/yiaany/gitmsg/issues/new/choose).
+- [Security issue? Report it privately](SECURITY.md). No tokens or chat exports in issues.
+- [Code of Conduct](CODE_OF_CONDUCT.md): be excellent to each other.
+
+### Build something weird with it
 
 - [Protocol & scriptable CLI](docs/PROTOCOL.md) — send/read from the terminal.
 - [Actions participant](docs/BOTS.md) — explicitly installed, never silently enabled.
@@ -159,14 +189,21 @@ There’s also `/shrug`. Obviously.
 ```sh
 npm run check:secrets
 npm test
+npm run typecheck
 npm run build
 ```
 
 The offline secret check scans publishable files and reachable local Git history
-without printing matched values. HTTP smoke tests also run when `TEST_BASE_URL`
+including staged bytes and commit/tag messages, without printing matched values.
+It is a best-effort guardrail, not proof that a repository contains no sensitive data.
+HTTP smoke tests also run when `TEST_BASE_URL`
 points to a running instance. Browser fixtures are isolated test tools, not product
 demo conversations. Two-account OAuth/invitation and physical-device checks still
 need a configured deployment; unit tests aren’t a substitute.
+
+Opening the source? Follow the [publication checklist](docs/PUBLISHING.md).
+Production credentials stay in Vercel, not in this repository. Publishing source
+does not require making anybody's chat repositories public.
 
 ## Ours, with credit where it’s due
 

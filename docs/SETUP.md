@@ -79,6 +79,11 @@ session; revoke authorization in GitHub settings when needed.
 5. Sign in with two accounts, create a dedicated private chat, accept the
    invitation and verify messages/media/encryption in both directions.
 
+Opening the source repository does **not** require moving credentials into Git
+or recreating your Vercel project. Keep the existing production environment and
+callback configuration. See [safe publication](PUBLISHING.md) before changing
+repository visibility; chat/settings/Saved Messages repos must stay private.
+
 **The website repository and chat repositories should be different.** Do not
 connect chat repositories to deployment hooks or run Actions on every message.
 Turning “lol” into a build pipeline gets expensive fast.
@@ -114,12 +119,15 @@ noncommercial use. This is a working experiment, not infinite free infrastructur
 ```sh
 npm run check:secrets
 npm test
+npm run typecheck
 npm run build
 ```
 
 Set `TEST_BASE_URL` to a running instance to include HTTP smoke tests. The secret
 scanner examines current publishable files and reachable local history, reporting
-paths/rules only. It is a best-effort pattern scan, **not a security audit**.
+paths/rules only. This includes staged content, historical text blobs and
+commit/tag text; binary assets and ignored local files are not text-scanned.
+It is a best-effort pattern scan, **not a security audit**.
 
 The optional `tests/fixtures/messenger-server.mjs` is an isolated, loopback-only
 browser test server. All API writes stay in memory. It is never imported into the

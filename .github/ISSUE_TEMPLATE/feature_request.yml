@@ -1,0 +1,23 @@
+name: Feature request
+description: A useful idea, or a responsibly unreasonable one.
+title: "[Idea]: "
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem would this solve?
+      description: Tell us about the user need before the implementation.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Your idea
+      description: Mention GitHub permissions, privacy, third-party services or recurring costs if relevant.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives / tradeoffs
+      description: No private chat data or secret links, please.
