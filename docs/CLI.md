@@ -5,8 +5,7 @@ by your microphone, not an especially confident random-number generator.
 
 ## Install and launch
 
-**First alpha pending publication.** These commands apply once
-`@yiaany/gitmsg@0.1.0-alpha.0` has been released to npm with the `alpha` tag.
+**Available on npm:** `@yiaany/gitmsg@0.1.0-alpha.0`, using the `alpha` tag.
 `gitmsg` on npm is an unrelated package; do not install it for this application.
 
 Install [Node.js >=26.4](https://nodejs.org/) and npm, then:

@@ -1,6 +1,7 @@
 # Terminal alpha preparation review — 2026-11-01
 
-**GitHub source pushed; final npm alpha prepared and authorized, not yet published.**
+**GitHub source pushed; npm alpha published and isolated installation verified.
+Removal of npm's automatically assigned `latest` tag still awaits official 2FA.**
 
 ## Identity and key handling
 
@@ -58,17 +59,39 @@ The archive is stored outside the source repository and has not been attached to
 a GitHub release. The final payload uses the rewritten npm README; the full manual
 is source-only. Local release checks, exact allowlist/content scan and a fresh
 isolated archive install were repeated successfully. The publication metadata
-must bind these bytes to the final source commit on `feat/terminal-client`.
+binds these bytes to source commit `941460907320cc428cb239d7536d964233454cfe`
+on `feat/terminal-client`.
 Any payload change invalidates this recorded artifact identity.
+
+## Registry publication observation
+
+- The maintainer completed npm's official browser approval. The subsequent upload
+  returned HTTP 202; a later retry returned HTTP 409 indicating the version was
+  already staged. No different archive or replacement version was submitted.
+- Public metadata now lists `0.1.0-alpha.0`, the expected SHA-512 integrity,
+  source commit, rewritten README, and maintainer `yiaany`.
+- npm also assigned `latest` automatically alongside the requested `alpha` tag.
+  Removing only `latest` was requested, but npm requires a separate official
+  browser/2FA confirmation. That tag correction has not succeeded yet.
+- The public tarball initially returned HTTP 404 during propagation, then HTTP 200.
+  Its 59,234 downloaded bytes matched the reviewed SHA-512 exactly.
+- Fresh installation by published spec `@yiaany/gitmsg@alpha` succeeded in a new
+  temporary global prefix. Because shell DNS/proxy access remains unavailable,
+  official public registry metadata/archive bytes were fetched through the HTTPS
+  transport and integrity-checked into npm's cache; npm installed by name/tag in
+  offline mode, not from a local source directory or supplied archive path.
+  Both installed commands' help, npm-provided Bun resolution, non-TTY startup and
+  the packaged native worker load passed. This is not an uncached online install.
+- The authenticated stage listing returned no pending items. Do not repeatedly
+  upload, unpublish, or change versions to conceal this inconsistent state.
 
 ## Remaining verification and alpha limitations
 
-1. Official registry publication response, version/tag/integrity verification and
-   fresh registry installation. No successful publication is claimed yet.
+1. Complete removal of the unintended `latest` tag with official approval.
 2. Live Device Flow and two-consenting-account/device acceptance, especially real
    microphone/speakers and website-to-native calls. Synthetic tests do not prove
    these. Keep the alpha limitations visible.
 3. Other-platform clean install/audio acceptance. macOS arm64 checks do not validate every runtime
    mapping or the newly added CI workflow on GitHub-hosted runners.
-4. Only after publication, update pending-publication copy and announce verified
-   installation commands. Do not silently promote a prerelease to `latest`.
+4. Uncached online installation on an independent machine remains useful additional
+   acceptance. Do not intentionally promote this prerelease to `latest`.

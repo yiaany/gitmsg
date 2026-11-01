@@ -1,7 +1,7 @@
 # Terminal alpha release checklist
 
 Target: **`@yiaany/gitmsg@0.1.0-alpha.0`**, public npm access, **`alpha`** dist-tag.
-This is a release candidate, **not a claim that a package is already published**.
+The first alpha is published; see the dated review for verification and tag status.
 The website root package remains private. Publish only the `cli/` package.
 
 The [dated preparation review](CLI_RELEASE_REVIEW.md) records checks that actually
