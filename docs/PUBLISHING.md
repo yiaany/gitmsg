@@ -4,6 +4,10 @@ Publishing **the website source repository** does not require changing its
 Vercel environment variables, OAuth configuration, chat repositories or room keys.
 No new service or paid plan is needed just to publish source.
 
+The terminal client has a separate npm payload and release gate:
+[CLI release checklist](CLI_RELEASE.md). Publishing GitHub source does not publish
+the npm package, authorize an npm account or promote the alpha tag.
+
 ## Keep Vercel working
 
 - Keep the same Vercel project, Git integration, production branch and domain.

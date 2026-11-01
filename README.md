@@ -2,7 +2,7 @@
 
 <p align="center">
   <strong>Your DMs. Their version control. Our questionable judgment.</strong><br />
-  A real messenger built on GitHub. Yes, every “lol” is a commit.
+   A real messenger built on GitHub. Now in your terminal. Yes, every “lol” is a commit.
 </p>
 
 <p align="center">
@@ -25,13 +25,61 @@
 </p>
 
 <p align="center">
-  <a href="#-wait-this-actually-works">The good stuff</a> ·
+   <a href="#-wait-this-actually-works">The good stuff</a> ·
+   <a href="#-your-terminal-can-make-phone-calls-now">Terminal CLI</a> ·
   <a href="docs/SETUP.md">Self-host</a> ·
   <a href="CONTRIBUTING.md">Contribute</a> ·
   <a href="https://github.com/yiaany/gitmsg/issues/new/choose">Break something?</a>
 </p>
 
 ---
+
+## ☎️ Your terminal can make phone calls now
+
+**Chat. Send voice notes. Call your friends. Without leaving the terminal.**
+An actual OpenTUI messenger, not `curl` wearing a trench coat.
+
+> **Bill Gates pays for our DMs. We brought the ASCII art.**
+> Your terminal is a phone. Your database is GitHub. Your messages are commits.
+> This is either peak engineering or a cry for help. **Holy shit, it works.**
+>
+> <sub>The Bill Gates part is a joke: GitHub is owned by Microsoft, not a personal
+> sponsorship. API quotas, storage, hosting and your network costs still apply.
+> Live audio is peer-to-peer, not a Microsoft-funded conference bridge.</sub>
+
+### One install. One command. Your own GitHub account.
+
+**npm release candidate:** `@yiaany/gitmsg@0.1.0-alpha.0`. The commands below are
+for **after the first alpha is published**; registry ownership/authorization is
+still a release gate. The unrelated npm package `gitmsg` is **not this project**.
+
+With **Node.js >=26.4** and npm:
+
+```sh
+npm install --global @yiaany/gitmsg@alpha
+gitmsg
+```
+
+That's it. npm installs the matching Bun runtime too; no separate shell installer.
+Choose **Continue with GitHub**, approve the one-time code, and use your own chats.
+No token paste, client secret or personal OAuth app required. Want your own OAuth
+app or an existing GitHub API token from your credential manager? [You can →](docs/CLI.md#your-own-github-connection)
+
+- **Real WebRTC audio calls.** Connecting spinner, connected timer, themed ASCII
+  art and a voice diagram driven by your actual microphone. Not random bars.
+- **Messages, images, voice notes, Copy / Reply, per-chat drafts and five themes.**
+- **Optional `/secure` encryption.** New content and call signaling use shared
+  AES-256-GCM keys; audio uses WebRTC transport encryption.
+- **`gitmsg` or `git message`**, from any directory. It never commits your project.
+
+Alpha caveats: calls need two-person private-chat metadata; incoming calls follow
+the open conversation. No TURN means some networks won't connect. A real
+website-to-CLI call still needs live acceptance testing. OAuth asks for broad
+`repo` access; standard messages are GitHub-readable. This is not an audited
+Signal replacement or an offline messenger.
+
+**[CLI quick start & commands](docs/CLI.md)** · **[Full terminal manual](cli/README.md)** ·
+**[Contribute to the CLI](CONTRIBUTING.md#terminal-client)** · **[Release checklist](docs/CLI_RELEASE.md)**
 
 ## 💬 Wait, this actually works?
 

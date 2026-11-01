@@ -28,7 +28,7 @@ export function secretKinds(text) {
   }).map(([name]) => name);
 }
 export function forbiddenPublishPath(path) {
-  return /(?:^|\/)(?:\.env(?!\.example$)(?:\..*)?|id_(?:rsa|ed25519)(?:\.pub)?|credentials\.json|\.npmrc|\.netrc|\.DS_Store|[^/]+\.(?:pem|key|p12|pfx|sqlite3?|db|7z|zip)|node_modules|\.next|\.vercel)(?:\/|$)/.test(path) || /^(?:events|media|exports)\//.test(path);
+  return /(?:^|\/)(?:\.env(?!\.example$)(?:\..*)?|id_(?:rsa|ed25519)(?:\.pub)?|credentials\.json|gitmsg-auth\.json|\.?gitmsg-room-key(?:-[a-f0-9]{24})?\.txt|\.gitmsg-local|\.npmrc|\.netrc|\.DS_Store|[^/]+\.(?:pem|key|p12|pfx|sqlite3?|db|7z|zip|tgz)|node_modules|\.next|\.vercel)(?:\/|$)/.test(path) || /^(?:events|media|exports|cli\/dist)\//.test(path);
 }
 export function checkSecrets({ history = true, cwd = process.cwd() } = {}) {
   const git = (...args) => execFileSync("git", args, { cwd, encoding: "utf8", maxBuffer: 100 * 1024 * 1024 });

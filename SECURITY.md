@@ -39,6 +39,13 @@ against other users or production chat repositories without permission.
   networks cannot connect. Standard SDP can disclose IP addresses in Git history.
 - Public profiles/channels are public. Never make chat/settings/Saved Messages
   repositories public when opening this **source-code** repository.
+- The terminal OAuth Client ID is public configuration, not a client secret.
+  Device Flow still requires GitHub approval and requests broad `repo read:user`
+  access. Tokens use an OS credential store or session memory, never a plaintext
+  fallback. Keep npm authorization and room-key backups outside source/artifacts.
+- npm installs pinned platform runtime/native dependencies. The CLI never fetches
+  an executable at launch; dependency integrity is not an independent security
+  audit. [CLI release gates](docs/CLI_RELEASE.md) cover the exact package archive.
 
 See [safe publication](docs/PUBLISHING.md) for the release checklist. Secret
 scanners reduce accidents; they cannot prove the absence of all sensitive data.
