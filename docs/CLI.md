@@ -91,7 +91,7 @@ Type `/` for completion. Hover a message for Copy / Reply. Ctrl+K opens chats.
 Esc steps back; Ctrl+C without a selection exits. Removing a sidebar conversation
 hides it locally after confirmation: it does not delete its GitHub repository.
 For full keyboard, clipboard, image and accessibility details, see the
-[terminal manual](../cli/README.md).
+[terminal manual](../cli/MANUAL.md).
 
 ## Calling from a terminal. Actually.
 

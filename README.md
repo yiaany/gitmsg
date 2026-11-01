@@ -26,60 +26,13 @@
 
 <p align="center">
    <a href="#-wait-this-actually-works">The good stuff</a> ·
-   <a href="#-your-terminal-can-make-phone-calls-now">Terminal CLI</a> ·
+   <a href="#-fine-how-do-i-get-it">Get it</a> ·
   <a href="docs/SETUP.md">Self-host</a> ·
   <a href="CONTRIBUTING.md">Contribute</a> ·
   <a href="https://github.com/yiaany/gitmsg/issues/new/choose">Break something?</a>
 </p>
 
 ---
-
-## ☎️ Your terminal can make phone calls now
-
-**Chat. Send voice notes. Call your friends. Without leaving the terminal.**
-An actual OpenTUI messenger, not `curl` wearing a trench coat.
-
-> **Bill Gates pays for our DMs. We brought the ASCII art.**
-> Your terminal is a phone. Your database is GitHub. Your messages are commits.
-> This is either peak engineering or a cry for help. **Holy shit, it works.**
->
-> <sub>The Bill Gates part is a joke: GitHub is owned by Microsoft, not a personal
-> sponsorship. API quotas, storage, hosting and your network costs still apply.
-> Live audio is peer-to-peer, not a Microsoft-funded conference bridge.</sub>
-
-### One install. One command. Your own GitHub account.
-
-**npm release candidate:** `@yiaany/gitmsg@0.1.0-alpha.0`. The commands below are
-for **after the first alpha is published**; registry ownership/authorization is
-still a release gate. The unrelated npm package `gitmsg` is **not this project**.
-
-With **Node.js >=26.4** and npm:
-
-```sh
-npm install --global @yiaany/gitmsg@alpha
-gitmsg
-```
-
-That's it. npm installs the matching Bun runtime too; no separate shell installer.
-Choose **Continue with GitHub**, approve the one-time code, and use your own chats.
-No token paste, client secret or personal OAuth app required. Want your own OAuth
-app or an existing GitHub API token from your credential manager? [You can →](docs/CLI.md#your-own-github-connection)
-
-- **Real WebRTC audio calls.** Connecting spinner, connected timer, themed ASCII
-  art and a voice diagram driven by your actual microphone. Not random bars.
-- **Messages, images, voice notes, Copy / Reply, per-chat drafts and five themes.**
-- **Optional `/secure` encryption.** New content and call signaling use shared
-  AES-256-GCM keys; audio uses WebRTC transport encryption.
-- **`gitmsg` or `git message`**, from any directory. It never commits your project.
-
-Alpha caveats: calls need two-person private-chat metadata; incoming calls follow
-the open conversation. No TURN means some networks won't connect. A real
-website-to-CLI call still needs live acceptance testing. OAuth asks for broad
-`repo` access; standard messages are GitHub-readable. This is not an audited
-Signal replacement or an offline messenger.
-
-**[CLI quick start & commands](docs/CLI.md)** · **[Full terminal manual](cli/README.md)** ·
-**[Contribute to the CLI](CONTRIBUTING.md#terminal-client)** · **[Release checklist](docs/CLI_RELEASE.md)**
 
 ## 💬 Wait, this actually works?
 
@@ -101,14 +54,33 @@ Signal replacement or an offline messenger.
 
 **Real people. Real messages. No fake online status.** Dark/light themes, mobile UI and keyboard shortcuts included. There's also `/shrug`. Essential infrastructure.
 
-### ⚡ Three steps to questionable greatness
+## 📦 Fine. How do I get it?
+
+### Team terminal
+
+**[Node.js 26.4+](https://nodejs.org/en/download)** and npm. Two lines. No side quest.
+
+```sh
+npm install --global @yiaany/gitmsg@alpha
+gitmsg
+```
+
+Choose **Continue with GitHub** → approve the code in your browser → open a chat.
+Next time? Just `gitmsg`. From any directory. Your actual project is safe from your pizza discourse.
+
+**`git message` works too.** Finally, a Git command your friends might answer.
+
+> Install **`@yiaany/gitmsg`**, not `gitmsg` — that npm name belongs to someone else.
+> **Alpha:** expect rough edges. [Commands, setup & known limits →](docs/CLI.md)
+
+### Team “I'm not installing another thing”
 
 1. **[Open gitmsg](https://www.gitmsg.fun/)** → sign in with GitHub. Login creates no repositories.
 2. **New Message** → pick a friend → start a chat. They accept the GitHub repository invitation.
 3. **Send “hey”.** Congratulations. You have weaponized version control.
 
 > [!IMPORTANT]
-> **Git remembers.** Standard messages are readable by GitHub and repository readers; deleting hides them, not their history. Encryption is opt-in, not retroactive. [Know the boundaries →](docs/ENCRYPTION.md)
+> **Git remembers.** Standard messages are readable by GitHub and repository readers; deleting hides them, not their history. Encryption is opt-in, not retroactive. Terminal login requests broad `repo` access. [Know the boundaries →](docs/ENCRYPTION.md) · [Terminal permissions →](docs/CLI.md)
 
 <details>
 <summary><strong>🧠 Open the hood. Disappoint a database engineer.</strong></summary>

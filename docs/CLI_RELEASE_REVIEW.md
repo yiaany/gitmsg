@@ -1,11 +1,12 @@
 # Terminal alpha preparation review — 2026-11-01
 
-**Candidate only. Nothing has been pushed or published by this review.**
+**GitHub source pushed; final npm alpha prepared and authorized, not yet published.**
 
 ## Identity and key handling
 
 - Intended package: `@yiaany/gitmsg@0.1.0-alpha.0`, public access, `alpha` tag.
-  npm-scope ownership and authenticated publication are still unverified gates.
+  Official registry `whoami` confirmed npm account `yiaany` after the maintainer
+  completed official browser login. Publication is explicitly authorized.
 - The existing terminal OAuth Client ID remains bundled. It is a public app
   identifier, not a client secret or GitHub token. Device Flow requires user
   approval; `repo read:user` is explicitly documented as broad access.
@@ -14,8 +15,10 @@
   returned no secret findings. These are best-effort detectors, not proof that
   all possible secrets or personal data are absent.
 - Credentials remain in the OS vault/session memory; room keys are not uploaded
-  to GitHub or included in the package. No website environment export, npm login,
-  client-secret rotation or source/chat repository visibility change was made.
+  to GitHub or included in the package. npm's own user configuration stores the
+  release credential outside the repository, owner-only; it was never printed.
+  No website environment export, client-secret rotation or repository visibility
+  change was made.
 
 ## Checks actually performed
 
@@ -43,29 +46,29 @@ runtime/native package archives retain registry integrity checks.
 
 ```text
 filename: yiaany-gitmsg-0.1.0-alpha.0.tgz
-compressed bytes: 65770
-unpacked bytes: 262848
+compressed bytes: 59234
+unpacked bytes: 246667
 entries: 8
-integrity: sha512-smkbqWVa9HvcUCDcIgCoHK0v6dcyhozh5SmJ75qg+N4WrqsOQG2CaM/IUV72JjG1k2/0CnRAhk4wT0s8mL6PKQ==
+sha1: 7f679e9eea128c9a7456072579a7b11b9aa1c9b9
+integrity: sha512-ka1bHpnOsbptqs9ALV1K6QcXZiylpD6kWAEvy6kmUPrvdTEVVRwUvrLlnfWc4We7xX6hOIEE3/6Tq6zYaLsfSQ==
 ```
 
 The eight entries are the exact allowlist in [CLI_RELEASE.md](CLI_RELEASE.md).
 The archive is stored outside the source repository and has not been attached to
-a GitHub release. Source changes are still uncommitted; the final approved commit
-and artifact must be bound together before publication. Any payload change or
-rebuild with different bytes invalidates this recorded artifact identity.
+a GitHub release. The final payload uses the rewritten npm README; the full manual
+is source-only. Local release checks, exact allowlist/content scan and a fresh
+isolated archive install were repeated successfully. The publication metadata
+must bind these bytes to the final source commit on `feat/terminal-client`.
+Any payload change invalidates this recorded artifact identity.
 
-## Still required before claiming a finished release
+## Remaining verification and alpha limitations
 
-1. Maintainer review/approval of the source diff and final release artifact;
-   explicit GitHub commit/push approval if requested.
-2. npm login using the real browser/2FA flow, scope ownership confirmation and
-   explicit authorization to publish this package/version/tag.
-3. Live Device Flow and two-consenting-account/device acceptance, especially real
+1. Official registry publication response, version/tag/integrity verification and
+   fresh registry installation. No successful publication is claimed yet.
+2. Live Device Flow and two-consenting-account/device acceptance, especially real
    microphone/speakers and website-to-native calls. Synthetic tests do not prove
    these. Keep the alpha limitations visible.
-4. Other-platform clean install/audio acceptance, and a fresh registry install
-   after an authorized publish. macOS arm64 checks do not validate every runtime
+3. Other-platform clean install/audio acceptance. macOS arm64 checks do not validate every runtime
    mapping or the newly added CI workflow on GitHub-hosted runners.
-5. Only after publication, update pending-publication copy and announce verified
+4. Only after publication, update pending-publication copy and announce verified
    installation commands. Do not silently promote a prerelease to `latest`.

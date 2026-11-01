@@ -1,7 +1,7 @@
 {
   "name": "@yiaany/gitmsg",
   "version": "0.1.0-alpha.0",
-  "description": "GitHub-backed terminal chat with WebRTC calls, voice notes and optional encryption. Yes, your DMs are commits.",
+  "description": "Your DMs. Their version control. A GitHub messenger in your terminal. Yes, every lol is a commit.",
   "type": "module",
   "license": "MIT",
   "engines": {
@@ -59,7 +59,7 @@
     "registry": "https://registry.npmjs.org/",
     "tag": "alpha"
   },
-  "homepage": "https://github.com/yiaany/gitmsg#readme",
+  "homepage": "https://github.com/yiaany/gitmsg/tree/feat/terminal-client/cli#readme",
   "bugs": { "url": "https://github.com/yiaany/gitmsg/issues" },
   "keywords": ["gitmsg", "terminal", "chat", "github", "webrtc", "opentui"],
   "repository": {
