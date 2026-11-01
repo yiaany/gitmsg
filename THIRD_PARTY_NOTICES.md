@@ -56,3 +56,11 @@ the upstream `app/globals.css` and `components/kokonutui/ai-prompt.tsx`.
 
 `qrcode-generator` 2.0.4: Copyright (c) 2009 Kazuhiko Arase, MIT License.
 The full MIT terms above apply to this notice.
+
+# Terminal client
+
+The separately packaged OpenTUI client uses React, OpenTUI, platform Bun runtimes
+and the isolated Node WebRTC dependency. Package-specific licensing boundaries
+and upstream native-code notices are listed in
+[`cli/THIRD_PARTY_NOTICES.md`](cli/THIRD_PARTY_NOTICES.md), which is also included
+in its npm allowlist. Website-only components/fonts are not part of that payload.

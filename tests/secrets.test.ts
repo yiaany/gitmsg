@@ -26,7 +26,7 @@ test("JSON credentials, package/hosting tokens and room invitation keys are dete
 });
 
 test("publish paths exclude local credentials, archives and actual conversation storage", () => {
-  for (const path of [".env.local", ".env", ".vercel/project.json", "private.key", "Desktop.7z", ".npmrc", "events/2026/11/01/message.json", "media/audio.bin", "exports/chat.json", "nested/credentials.json"]) assert.equal(forbiddenPublishPath(path), true, path);
+  for (const path of [".env.local", ".env", ".vercel/project.json", "private.key", "Desktop.7z", ".npmrc", "events/2026/11/01/message.json", "media/audio.bin", "exports/chat.json", "nested/credentials.json", "cli/dist/main.js", "cli/gitmsg.tgz", "gitmsg-auth.json", "gitmsg-room-key.txt", ".gitmsg-local/config.json"]) assert.equal(forbiddenPublishPath(path), true, path);
   for (const path of [".env.example", "src/lib/media.ts", "tests/fixtures/call-server.ts", "public/chat-pattern.svg"]) assert.equal(forbiddenPublishPath(path), false, path);
 });
 

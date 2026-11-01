@@ -1,0 +1,70 @@
+{
+  "name": "@yiaany/gitmsg",
+  "version": "0.1.0-alpha.0",
+  "description": "GitHub-backed terminal chat with WebRTC calls, voice notes and optional encryption. Yes, your DMs are commits.",
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": ">=26.4.0"
+  },
+  "bin": {
+    "gitmsg": "bin/gitmsg.mjs",
+    "git-message": "bin/gitmsg.mjs"
+  },
+  "files": [
+    "bin/gitmsg.mjs",
+    "bin/runtime.mjs",
+    "dist/main.js",
+    "dist/call-worker.js",
+    "README.md",
+    "LICENSE",
+    "THIRD_PARTY_NOTICES.md"
+  ],
+  "scripts": {
+    "dev": "node scripts/run-bun.mjs src/main.tsx",
+    "build": "node scripts/run-bun.mjs scripts/build.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test tests/*.test.ts",
+    "test:ui": "node scripts/run-bun.mjs test tests/ui.test.tsx",
+    "pack:check": "tsx scripts/check-package.ts",
+    "test:package": "node scripts/smoke-package.mjs",
+    "release:check": "node scripts/release-check.mjs",
+    "prepack": "npm run build",
+    "prepublishOnly": "npm run release:check"
+  },
+  "dependencies": {
+    "@opentui/core": "0.8.1",
+    "@opentui/react": "0.8.1",
+    "@roamhq/wrtc": "0.10.0",
+    "react": "19.3.1"
+  },
+  "devDependencies": {
+    "@types/bun": "1.4.4",
+    "@types/react": "19.3.0",
+    "tsx": "4.23.1",
+    "typescript": "6.0.3"
+  },
+  "optionalDependencies": {
+    "@oven/bun-darwin-aarch64": "1.4.4",
+    "@oven/bun-darwin-x64": "1.4.4",
+    "@oven/bun-linux-aarch64": "1.4.4",
+    "@oven/bun-linux-aarch64-musl": "1.4.4",
+    "@oven/bun-linux-x64": "1.4.4",
+    "@oven/bun-linux-x64-musl": "1.4.4",
+    "@oven/bun-windows-aarch64": "1.4.4",
+    "@oven/bun-windows-x64": "1.4.4"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/",
+    "tag": "alpha"
+  },
+  "homepage": "https://github.com/yiaany/gitmsg#readme",
+  "bugs": { "url": "https://github.com/yiaany/gitmsg/issues" },
+  "keywords": ["gitmsg", "terminal", "chat", "github", "webrtc", "opentui"],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yiaany/gitmsg.git",
+    "directory": "cli"
+  }
+}

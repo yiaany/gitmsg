@@ -23,3 +23,10 @@ credentials.json
 /events/
 /media/
 /exports/
+# Terminal build output and accidental local CLI credentials.
+/cli/dist/
+/cli/*.tgz
+.gitmsg-local/
+gitmsg-auth.json
+gitmsg-room-key.txt
+.gitmsg-room-key-*.txt

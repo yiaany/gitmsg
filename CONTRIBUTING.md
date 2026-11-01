@@ -37,6 +37,59 @@ Use synthetic screenshots and the PR checklist. Never attach tokens, cookies,
 private chat exports, room keys, real invite links or full network captures.
 Security bugs go through [SECURITY.md](SECURITY.md), not public issues.
 
+## Terminal client
+
+The OpenTUI application lives in **`cli/`**, with a separate npm manifest/lockfile.
+It reuses the website's protocol, encryption and call state machine; do not fork
+the wire format just to make a terminal feature easier. CLI dependencies do not
+belong in the Next.js root package.
+
+Use **Node >=26.4** (OpenTUI's declared engine). Optional npm dependencies provide
+the pinned Bun runtime; no separate shell installer is needed:
+
+```sh
+cd cli
+npm ci --include=dev --include=optional --ignore-scripts
+npm run dev
+```
+
+`npm run dev` needs a real terminal. Read [CLI usage](docs/CLI.md) for sign-in;
+contributors need no production token/client secret. For a separate OAuth app,
+enable Device Flow and supply only its public Client ID. Unit/UI tests require no
+credentials, microphone permission or real GitHub writes.
+
+Before a CLI PR, from `cli/`:
+
+```sh
+npm run release:check
+```
+
+Also run the root website tests/typecheck/build for shared protocol changes. The
+CI jobs are separate so CLI native dependencies do not enter a website build.
+
+Useful paths:
+
+| Path | Purpose |
+| --- | --- |
+| `cli/src/app.tsx`, `motion.tsx`, `themes.ts` | Terminal screens, input, animation and themes |
+| `cli/src/rooms.ts`, `github.ts`, `device-flow.ts` | Validated GitHub operations and device login |
+| `cli/src/credentials.ts`, `room-keys.ts` | OS credential and room-key storage boundaries |
+| `cli/src/call-*.ts`, `call-view.tsx`, `calls.ts` | Audio devices, isolated Node WebRTC worker and ASCII UI |
+| `cli/bin/`, `cli/scripts/` | Fixed-executable launcher, builds and publication allowlist |
+| `cli/tests/` | Synthetic transport, rendering, native WebRTC and failure-path tests |
+
+Preserve drafts, keyboard/mouse navigation, compact layouts, themes and reduced
+motion. Microphone diagrams must use measured levels; no fake presence, connection
+success or clipboard acknowledgement. Calls/recording never start on an incoming
+event or while merely reading a chat. Keep audio queues bounded; stop devices and
+workers after cancellation, denial, hangup, sign-out and exit. Never load the
+native WebRTC module directly into Bun: it runs in the isolated Node worker.
+
+Use synthetic screenshots. Real OAuth, invites, sends and calls require explicit
+consent and private test accounts/rooms. Do not connect tests to somebody's inbox.
+Publishing or promoting an npm tag is not a side effect of a PR or test run; follow
+the [separate release gates](docs/CLI_RELEASE.md).
+
 ## Project guardrails
 
 - Keep interface copy **English** and follow the current components, spacing and
@@ -62,6 +115,7 @@ Security bugs go through [SECURITY.md](SECURITY.md), not public issues.
 | `src/lib/protocol.ts`, `room-crypto.ts` | Event validation, history and encryption |
 | `src/lib/audio-call.ts` | Direct audio lifecycle and resource cleanup |
 | `src/components/` | Messenger UI and browser integrations |
+| `cli/` | Separately packaged OpenTUI messenger, native audio and tests |
 | `tests/`, `scripts/check-secrets.mjs` | Regression checks and publication safety |
 | `docs/`, `public/integrations/`, `plugins/` | Protocol, CLI and opt-in integrations |
 

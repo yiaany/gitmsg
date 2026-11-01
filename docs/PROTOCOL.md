@@ -10,6 +10,12 @@ Kinds: `message`, `edit`/`delete` (original author and `target` ID), `reaction` 
 
 Attachments: up to four metadata objects `{id,name,mime,size,sha256,iv?,duration?}` referring to a separately committed `media/<id>.bin`. At most 2 MiB before encryption (+16 byte tag); recordings at most 60 seconds. Images are locally rasterized to WebP before upload. Supported previews are raster images and browser audio; other supported files are downloadable attachments. Fetch only after a click; verify SHA-256 before previewing or downloading. Binary `.bin` is a storage container; metadata provides MIME/name. Failed uploads/events can leave orphan blobs, not rollback or erasure.
 
+Terminal voice recordings use `audio/wav`: 16 kHz, mono PCM16, at most 60 seconds.
+Optional `waveform` contains 1–64 integer RMS bins in 0–31. Duration/waveform and
+other attachment metadata are inside the sealed event in secure rooms; the blob
+itself uses AES-256-GCM with the existing media context. Browser WebM/Ogg/MP4
+recordings remain supported; native terminal playback currently decodes PCM WAV.
+
 The whiteboard editor has been removed. Historical `application/vnd.excalidraw+json` attachments remain valid and downloadable (including in encrypted rooms); existing messages and Git history are unchanged. `savedFrom` contains original repo/message/optional SHA; Save to Git copies attachment bytes into the private Saved Messages repo rather than retaining a fragile cross-repo link.
 
 Secure envelopes and AAD: [ENCRYPTION.md](ENCRYPTION.md). Plaintext read clients cannot materialize encrypted mutation kinds. Never send a key to GitHub or Actions.
@@ -21,6 +27,11 @@ and a bounded reason. Secure calls keep the outer call kind but seal all paramet
 Freshness is checked at consumption, not historical parsing. See [CALLS.md](CALLS.md).
 
 ## Three clients
+
+An additional **OpenTUI terminal alpha** is under development in [`cli/`](../cli/README.md),
+with Device Flow and OS credential storage. It reuses the website protocol and
+encryption modules. It is not published to npm; the existing `gitmsg` npm name
+belongs to an unrelated package. The downloadable script below remains available.
 
 - **Website:** room → Chat tools → Terminal / GitHub offers the downloadable Node 22 CLI and a GitHub-editor event generator.
 - **Terminal:** `public/integrations/gitmsg.mjs`, no dependencies. Authenticate with `GITHUB_TOKEN` through an environment credential manager, optionally set `GITMSG_BRANCH`. Commands: `read`, `send "text"`, `propose "text"`. Secure rooms require `GITMSG_KEY_FILE` pointing to a private backup file (restrict permissions to its owner); never pass the secret in command arguments. Read currently prints the latest 100 **raw events**, not a fully materialized transcript or attachments.
